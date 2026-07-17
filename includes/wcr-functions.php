@@ -94,3 +94,101 @@ function wcr_table( $name ) {
 
 	return $wpdb->prefix . 'wcr_' . $name;
 }
+
+/**
+ * Returns the current UTC time in MySQL DATETIME format.
+ *
+ * All plugin timestamps are stored in UTC so idle-window and TTL comparisons
+ * against unix time are consistent regardless of the site timezone.
+ *
+ * @return string
+ */
+function wcr_now() {
+	return gmdate( 'Y-m-d H:i:s' );
+}
+
+/**
+ * Serializes a WooCommerce cart into a compact, storable item list.
+ *
+ * Capped at 100 line items (documented cap). Stores only the identifiers needed
+ * to rebuild the cart plus the quantity and line total for email rendering.
+ *
+ * @param WC_Cart $cart Cart to serialize.
+ * @return array List of item arrays.
+ */
+function wcr_serialize_cart( $cart ) {
+	$items = array();
+
+	if ( ! is_object( $cart ) || ! method_exists( $cart, 'get_cart' ) ) {
+		return $items;
+	}
+
+	$count = 0;
+
+	foreach ( $cart->get_cart() as $cart_item ) {
+		if ( $count >= 100 ) {
+			break;
+		}
+
+		if ( ! is_array( $cart_item ) ) {
+			continue;
+		}
+
+		$variation = array();
+
+		if ( isset( $cart_item['variation'] ) && is_array( $cart_item['variation'] ) ) {
+			foreach ( $cart_item['variation'] as $attr_key => $attr_value ) {
+				$variation[ (string) $attr_key ] = (string) $attr_value;
+			}
+		}
+
+		$items[] = array(
+			'product_id'   => isset( $cart_item['product_id'] ) ? absint( $cart_item['product_id'] ) : 0,
+			'variation_id' => isset( $cart_item['variation_id'] ) ? absint( $cart_item['variation_id'] ) : 0,
+			'variation'    => $variation,
+			'quantity'     => isset( $cart_item['quantity'] ) ? absint( $cart_item['quantity'] ) : 0,
+			'line_total'   => isset( $cart_item['line_total'] ) ? (float) $cart_item['line_total'] : 0.0,
+		);
+
+		++$count;
+	}
+
+	return $items;
+}
+
+/**
+ * Appends a row to the append-only event log.
+ *
+ * Meta must contain scalars only and never personal data.
+ *
+ * @param int      $cart_id Cart row id.
+ * @param int|null $send_id Send row id, or null.
+ * @param string   $type    Event type from the documented set.
+ * @param array    $meta    Optional scalar detail.
+ * @return void
+ */
+function wcr_log_event( $cart_id, $send_id, $type, $meta = array() ) {
+	global $wpdb;
+
+	$table = wcr_table( 'events' );
+
+	if ( '' === $table ) {
+		return;
+	}
+
+	$inserted = $wpdb->insert(
+		$table,
+		array(
+			'cart_id'    => absint( $cart_id ),
+			'send_id'    => $send_id ? absint( $send_id ) : null,
+			'type'       => (string) $type,
+			'meta'       => empty( $meta ) ? null : wp_json_encode( $meta ),
+			'created_at' => wcr_now(),
+		),
+		array( '%d', '%d', '%s', '%s', '%s' )
+	);
+
+	if ( false === $inserted ) {
+		wcr_log( 'error', 'Failed to write an event row.', array( 'type' => (string) $type ) );
+	}
+}
