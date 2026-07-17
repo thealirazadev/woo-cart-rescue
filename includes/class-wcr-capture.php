@@ -25,6 +25,43 @@ class WCR_Capture {
 		add_action( 'wp_ajax_wcr_capture_guest', array( $this, 'handle_guest_capture' ) );
 		add_action( 'wp_ajax_nopriv_wcr_capture_guest', array( $this, 'handle_guest_capture' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_checkout_script' ) );
+		add_action( 'woocommerce_before_checkout_form', array( $this, 'refresh_activity_on_checkout' ) );
+	}
+
+	/**
+	 * Refreshes last_activity_at for the current cart on checkout page loads.
+	 *
+	 * Keeps a shopper who is actively checking out from being swept as idle.
+	 * Only touches an existing active row; it never creates one.
+	 *
+	 * @return void
+	 */
+	public function refresh_activity_on_checkout() {
+		$settings = wcr_get_settings();
+
+		if ( empty( $settings['enabled'] ) || ! function_exists( 'WC' ) ) {
+			return;
+		}
+
+		$wc = WC();
+
+		if ( ! $wc || null === $wc->session ) {
+			return;
+		}
+
+		$cart_key = (string) $wc->session->get_customer_id();
+
+		if ( '' === $cart_key ) {
+			return;
+		}
+
+		global $wpdb;
+
+		$table = wcr_table( 'carts' );
+		$now   = wcr_now();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted whitelisted table name; values are prepared.
+		$wpdb->query( $wpdb->prepare( "UPDATE {$table} SET last_activity_at = %s, updated_at = %s WHERE cart_key = %s AND status = 'active'", $now, $now, $cart_key ) );
 	}
 
 	/**
