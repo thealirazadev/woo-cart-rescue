@@ -121,6 +121,94 @@ class WCR_Test_Orders extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Initializes a WooCommerce session for attribution keys.
+	 *
+	 * @return void
+	 */
+	protected function init_session() {
+		WC()->session = new WC_Session_Handler();
+		WC()->session->init();
+	}
+
+	/**
+	 * An order within the attribution window marks the cart recovered.
+	 *
+	 * @return void
+	 */
+	public function test_order_in_window_is_recovered() {
+		if ( ! function_exists( 'wc_create_order' ) ) {
+			$this->markTestSkipped( 'WooCommerce order helpers unavailable.' );
+		}
+
+		list( $cart_id, $send_id ) = $this->seed( 'buyer@example.com' );
+
+		$this->init_session();
+		WC()->session->set( 'wcr_recovery_cart_id', $cart_id );
+		WC()->session->set( 'wcr_recovery_send_id', $send_id );
+		WC()->session->set( 'wcr_recovery_expires', time() + HOUR_IN_SECONDS );
+
+		$order = wc_create_order();
+		$order->set_billing_email( 'buyer@example.com' );
+		$order->save();
+
+		( new WCR_Orders() )->on_order_processed( $order->get_id() );
+
+		$cart = wcr_get_cart( $cart_id );
+		$this->assertSame( 'recovered', $cart->status );
+		$this->assertSame( (int) $order->get_id(), (int) $cart->recovered_order_id );
+		$this->assertSame( $cart_id, (int) wc_get_order( $order->get_id() )->get_meta( '_wcr_recovered_cart_id' ) );
+	}
+
+	/**
+	 * An order after the window has expired is completed, not recovered.
+	 *
+	 * @return void
+	 */
+	public function test_order_outside_window_is_completed() {
+		if ( ! function_exists( 'wc_create_order' ) ) {
+			$this->markTestSkipped( 'WooCommerce order helpers unavailable.' );
+		}
+
+		list( $cart_id, $send_id ) = $this->seed( 'buyer@example.com' );
+
+		$this->init_session();
+		WC()->session->set( 'wcr_recovery_cart_id', $cart_id );
+		WC()->session->set( 'wcr_recovery_send_id', $send_id );
+		WC()->session->set( 'wcr_recovery_expires', time() - 10 );
+
+		$order = wc_create_order();
+		$order->set_billing_email( 'buyer@example.com' );
+		$order->save();
+
+		( new WCR_Orders() )->on_order_processed( $order->get_id() );
+
+		$this->assertSame( 'completed', wcr_get_cart( $cart_id )->status );
+	}
+
+	/**
+	 * An order with no restore click is completed, not recovered.
+	 *
+	 * @return void
+	 */
+	public function test_order_without_restore_is_completed() {
+		if ( ! function_exists( 'wc_create_order' ) ) {
+			$this->markTestSkipped( 'WooCommerce order helpers unavailable.' );
+		}
+
+		list( $cart_id ) = $this->seed( 'buyer@example.com' );
+
+		$this->init_session();
+
+		$order = wc_create_order();
+		$order->set_billing_email( 'buyer@example.com' );
+		$order->save();
+
+		( new WCR_Orders() )->on_order_processed( $order->get_id() );
+
+		$this->assertSame( 'completed', wcr_get_cart( $cart_id )->status );
+	}
+
+	/**
 	 * A later pending step is cancelled when an order is placed.
 	 *
 	 * @return void
