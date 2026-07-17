@@ -573,6 +573,9 @@ function wcr_sanitize_settings( $input ) {
 		add_settings_error( 'wcr_settings', 'wcr_retention_clamped', __( 'The retention window was adjusted to the allowed range (1 to 3650 days).', 'woo-cart-rescue' ), 'warning' );
 	}
 
+	$ttl                     = isset( $input['token_ttl_days'] ) ? absint( $input['token_ttl_days'] ) : (int) $current['token_ttl_days'];
+	$clean['token_ttl_days'] = wcr_clamp( $ttl, 1, 365 );
+
 	$label = isset( $input['consent_label'] ) ? trim( sanitize_text_field( $input['consent_label'] ) ) : (string) $current['consent_label'];
 
 	if ( '' === $label ) {
@@ -580,6 +583,18 @@ function wcr_sanitize_settings( $input ) {
 	}
 
 	$clean['consent_label'] = $label;
+
+	$step_defaults  = wcr_step_defaults();
+	$clean['steps'] = array();
+
+	foreach ( array( 1, 2, 3 ) as $step ) {
+		$in = ( isset( $input['steps'][ $step ] ) && is_array( $input['steps'][ $step ] ) ) ? $input['steps'][ $step ] : array();
+
+		$clean['steps'][ $step ] = array(
+			'enabled' => ! empty( $in['enabled'] ),
+			'delay'   => wcr_clamp( isset( $in['delay'] ) ? absint( $in['delay'] ) : $step_defaults[ $step ]['delay'], 1, 43200 ),
+		);
+	}
 
 	return $clean;
 }

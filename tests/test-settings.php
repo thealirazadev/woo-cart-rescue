@@ -90,4 +90,43 @@ class WCR_Test_Settings extends TestCase {
 		$clean = wcr_sanitize_settings( array( 'consent_label' => 'Save my cart <script>x</script>' ) );
 		$this->assertStringNotContainsString( '<script>', $clean['consent_label'] );
 	}
+
+	/**
+	 * The token lifetime is bounded to 1..365 days.
+	 *
+	 * @return void
+	 */
+	public function test_token_ttl_days_bounded() {
+		$this->assertSame( 1, wcr_sanitize_settings( array( 'token_ttl_days' => 0 ) )['token_ttl_days'] );
+		$this->assertSame( 365, wcr_sanitize_settings( array( 'token_ttl_days' => 5000 ) )['token_ttl_days'] );
+	}
+
+	/**
+	 * Per-step enable flags and delays are sanitized and clamped.
+	 *
+	 * @return void
+	 */
+	public function test_steps_are_sanitized() {
+		$clean = wcr_sanitize_settings(
+			array(
+				'steps' => array(
+					1 => array(
+						'enabled' => '1',
+						'delay'   => 30,
+					),
+					2 => array( 'delay' => 999999 ),
+					3 => array(
+						'enabled' => '1',
+						'delay'   => 0,
+					),
+				),
+			)
+		);
+
+		$this->assertTrue( $clean['steps'][1]['enabled'] );
+		$this->assertSame( 30, $clean['steps'][1]['delay'] );
+		$this->assertFalse( $clean['steps'][2]['enabled'] );
+		$this->assertSame( 43200, $clean['steps'][2]['delay'] );
+		$this->assertSame( 1, $clean['steps'][3]['delay'] );
+	}
 }

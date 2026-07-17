@@ -80,7 +80,27 @@ class WCR_Admin {
 		add_settings_field( 'wcr_enabled', __( 'Enable cart recovery', 'woo-cart-rescue' ), array( $this, 'field_enabled' ), self::PAGE_SECTION, 'wcr_general' );
 		add_settings_field( 'wcr_idle_window', __( 'Idle window (minutes)', 'woo-cart-rescue' ), array( $this, 'field_idle_window' ), self::PAGE_SECTION, 'wcr_general' );
 		add_settings_field( 'wcr_retention_days', __( 'Retention (days)', 'woo-cart-rescue' ), array( $this, 'field_retention_days' ), self::PAGE_SECTION, 'wcr_general' );
+		add_settings_field( 'wcr_token_ttl_days', __( 'Restore link lifetime (days)', 'woo-cart-rescue' ), array( $this, 'field_token_ttl_days' ), self::PAGE_SECTION, 'wcr_general' );
 		add_settings_field( 'wcr_consent_label', __( 'Consent checkbox label', 'woo-cart-rescue' ), array( $this, 'field_consent_label' ), self::PAGE_SECTION, 'wcr_general' );
+
+		add_settings_section(
+			'wcr_steps',
+			__( 'Recovery email steps', 'woo-cart-rescue' ),
+			array( $this, 'render_steps_intro' ),
+			self::PAGE_SECTION
+		);
+
+		foreach ( array( 1, 2, 3 ) as $step ) {
+			add_settings_field(
+				'wcr_step_' . $step,
+				/* translators: %d: recovery step number. */
+				sprintf( __( 'Step %d', 'woo-cart-rescue' ), $step ),
+				array( $this, 'field_step' ),
+				self::PAGE_SECTION,
+				'wcr_steps',
+				array( 'step' => $step )
+			);
+		}
 	}
 
 	/**
@@ -130,6 +150,49 @@ class WCR_Admin {
 		?>
 		<input type="number" id="wcr_retention_days" name="wcr_settings[retention_days]" min="1" max="3650" step="1" value="<?php echo esc_attr( (string) $settings['retention_days'] ); ?>" />
 		<p class="description"><?php esc_html_e( 'Days to keep non-recovered cart data before it is purged (1 to 3650).', 'woo-cart-rescue' ); ?></p>
+		<?php
+	}
+
+	/**
+	 * Renders the restore-link lifetime field.
+	 *
+	 * @return void
+	 */
+	public function field_token_ttl_days() {
+		$settings = wcr_get_settings();
+		?>
+		<input type="number" id="wcr_token_ttl_days" name="wcr_settings[token_ttl_days]" min="1" max="365" step="1" value="<?php echo esc_attr( (string) $settings['token_ttl_days'] ); ?>" />
+		<p class="description"><?php esc_html_e( 'How long a restore link stays valid after it is sent (1 to 365 days).', 'woo-cart-rescue' ); ?></p>
+		<?php
+	}
+
+	/**
+	 * Renders the steps section description.
+	 *
+	 * @return void
+	 */
+	public function render_steps_intro() {
+		echo '<p>' . esc_html__( 'Up to three reminders. Step 1 is delayed from abandonment; steps 2 and 3 from the previous send. Disabled steps are skipped.', 'woo-cart-rescue' ) . '</p>';
+	}
+
+	/**
+	 * Renders one step's enable toggle and delay field.
+	 *
+	 * @param array $args Field args with the step number.
+	 * @return void
+	 */
+	public function field_step( $args ) {
+		$step   = isset( $args['step'] ) ? (int) $args['step'] : 1;
+		$config = wcr_get_step_config( $step );
+		?>
+		<label for="wcr_step_<?php echo esc_attr( (string) $step ); ?>_enabled">
+			<input type="checkbox" id="wcr_step_<?php echo esc_attr( (string) $step ); ?>_enabled" name="wcr_settings[steps][<?php echo esc_attr( (string) $step ); ?>][enabled]" value="1" <?php checked( ! empty( $config['enabled'] ) ); ?> />
+			<?php esc_html_e( 'Send this reminder', 'woo-cart-rescue' ); ?>
+		</label>
+		<p>
+			<label for="wcr_step_<?php echo esc_attr( (string) $step ); ?>_delay"><?php esc_html_e( 'Delay (minutes):', 'woo-cart-rescue' ); ?></label>
+			<input type="number" id="wcr_step_<?php echo esc_attr( (string) $step ); ?>_delay" name="wcr_settings[steps][<?php echo esc_attr( (string) $step ); ?>][delay]" min="1" max="43200" step="1" value="<?php echo esc_attr( (string) $config['delay'] ); ?>" />
+		</p>
 		<?php
 	}
 
