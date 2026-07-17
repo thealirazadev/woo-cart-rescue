@@ -137,4 +137,101 @@ class WCR_Token {
 	public static function is_expired( $expires ) {
 		return (int) $expires <= time();
 	}
+
+	/**
+	 * Validates a restore token against send and cart state.
+	 *
+	 * Runs every documented step in order; the first failure returns a reason
+	 * code for logging only. All failures look identical to the visitor.
+	 *
+	 * @param string $token Token string.
+	 * @return array{ok:bool,code:string,send:object|null,cart:object|null}
+	 */
+	public static function validate_restore( $token ) {
+		$parsed = self::verify( $token, self::secret() );
+
+		if ( false === $parsed ) {
+			$code = ( false === self::parse( $token ) ) ? 'malformed' : 'bad_signature';
+			return self::failure( $code );
+		}
+
+		if ( self::is_expired( $parsed['expires'] ) ) {
+			return self::failure( 'expired' );
+		}
+
+		$send = wcr_get_send( $parsed['send_id'] );
+
+		if ( ! $send || ! is_string( $send->token_hash ) || ! hash_equals( $send->token_hash, self::hash( $token ) ) ) {
+			return self::failure( 'unknown_send' );
+		}
+
+		if ( null !== $send->token_used_at ) {
+			return self::failure( 'already_used' );
+		}
+
+		$cart = wcr_get_cart( (int) $send->cart_id );
+
+		if ( ! $cart || ! in_array( $cart->status, array( 'abandoned', 'active' ), true ) ) {
+			return self::failure( 'wrong_state' );
+		}
+
+		$contents = json_decode( (string) $cart->cart_contents, true );
+
+		if ( ! is_array( $contents ) || array() === $contents ) {
+			return self::failure( 'empty_cart' );
+		}
+
+		return array(
+			'ok'   => true,
+			'code' => '',
+			'send' => $send,
+			'cart' => $cart,
+		);
+	}
+
+	/**
+	 * Validates an unsubscribe token: signature and known send only.
+	 *
+	 * Expiry and single-use are deliberately not enforced so an unsubscribe
+	 * always works, even from an old email.
+	 *
+	 * @param string $token Token string.
+	 * @return array{ok:bool,code:string,send:object|null,cart:object|null}
+	 */
+	public static function validate_unsubscribe( $token ) {
+		$parsed = self::verify( $token, self::secret() );
+
+		if ( false === $parsed ) {
+			$code = ( false === self::parse( $token ) ) ? 'malformed' : 'bad_signature';
+			return self::failure( $code );
+		}
+
+		$send = wcr_get_send( $parsed['send_id'] );
+
+		if ( ! $send || ! is_string( $send->token_hash ) || ! hash_equals( $send->token_hash, self::hash( $token ) ) ) {
+			return self::failure( 'unknown_send' );
+		}
+
+		return array(
+			'ok'   => true,
+			'code' => '',
+			'send' => $send,
+			'cart' => wcr_get_cart( (int) $send->cart_id ),
+		);
+	}
+
+	/**
+	 * Builds a uniform failure result.
+	 *
+	 * @param string $code Reason code, for logging only.
+	 * @return array{ok:bool,code:string,send:null,cart:null}
+	 */
+	private static function failure( $code ) {
+		return array(
+			'ok'   => false,
+			'code' => $code,
+			'send' => null,
+			'cart' => null,
+		);
+	}
 }
