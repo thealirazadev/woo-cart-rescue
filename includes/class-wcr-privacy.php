@@ -21,6 +21,118 @@ class WCR_Privacy {
 	 */
 	public function register() {
 		add_action( 'wcr_retention_cleanup', array( $this, 'cleanup' ) );
+		add_filter( 'wp_privacy_personal_data_exporters', array( $this, 'register_exporter' ) );
+		add_filter( 'wp_privacy_personal_data_erasers', array( $this, 'register_eraser' ) );
+	}
+
+	/**
+	 * Registers the personal-data exporter with the core privacy tools.
+	 *
+	 * @param array $exporters Registered exporters.
+	 * @return array
+	 */
+	public function register_exporter( $exporters ) {
+		$exporters['woo-cart-rescue'] = array(
+			'exporter_friendly_name' => __( 'WooCommerce Cart Rescue', 'woo-cart-rescue' ),
+			'callback'               => array( $this, 'export_personal_data' ),
+		);
+
+		return $exporters;
+	}
+
+	/**
+	 * Registers the personal-data eraser with the core privacy tools.
+	 *
+	 * @param array $erasers Registered erasers.
+	 * @return array
+	 */
+	public function register_eraser( $erasers ) {
+		$erasers['woo-cart-rescue'] = array(
+			'eraser_friendly_name' => __( 'WooCommerce Cart Rescue', 'woo-cart-rescue' ),
+			'callback'             => array( $this, 'erase_personal_data' ),
+		);
+
+		return $erasers;
+	}
+
+	/**
+	 * Exports the cart records held for an email.
+	 *
+	 * @param string $email Email address.
+	 * @param int    $page  Page number (unused; all rows returned at once).
+	 * @return array
+	 */
+	public function export_personal_data( $email, $page = 1 ) {
+		unset( $page );
+
+		global $wpdb;
+
+		$carts = wcr_table( 'carts' );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted whitelisted table name; value is prepared.
+		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$carts} WHERE email = %s", $email ) );
+
+		$items = array();
+
+		foreach ( (array) $rows as $row ) {
+			$items[] = array(
+				'group_id'    => 'wcr_carts',
+				'group_label' => __( 'Abandoned cart records', 'woo-cart-rescue' ),
+				'item_id'     => 'wcr-cart-' . (int) $row->id,
+				'data'        => array(
+					array(
+						'name'  => __( 'Status', 'woo-cart-rescue' ),
+						'value' => $row->status,
+					),
+					array(
+						'name'  => __( 'Cart total', 'woo-cart-rescue' ),
+						'value' => $row->cart_total . ' ' . $row->currency,
+					),
+					array(
+						'name'  => __( 'Captured at', 'woo-cart-rescue' ),
+						'value' => $row->created_at,
+					),
+					array(
+						'name'  => __( 'Last activity at', 'woo-cart-rescue' ),
+						'value' => $row->last_activity_at,
+					),
+				),
+			);
+		}
+
+		return array(
+			'data' => $items,
+			'done' => true,
+		);
+	}
+
+	/**
+	 * Anonymizes the cart records held for an email.
+	 *
+	 * @param string $email Email address.
+	 * @param int    $page  Page number (unused; all rows handled at once).
+	 * @return array
+	 */
+	public function erase_personal_data( $email, $page = 1 ) {
+		unset( $page );
+
+		global $wpdb;
+
+		$carts = wcr_table( 'carts' );
+		$now   = wcr_now();
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted whitelisted table name; values are prepared.
+		$affected = $wpdb->query(
+			$wpdb->prepare( "UPDATE {$carts} SET email = NULL, user_id = NULL, cart_contents = NULL, status = 'anonymized', updated_at = %s WHERE email = %s", $now, $email )
+		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		return array(
+			'items_removed'  => ( $affected > 0 ),
+			'items_retained' => false,
+			'messages'       => array(),
+			'done'           => true,
+		);
 	}
 
 	/**
