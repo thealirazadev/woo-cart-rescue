@@ -377,7 +377,7 @@ class WCR_Admin {
 	 * @param string $to   End date Y-m-d.
 	 * @return array
 	 */
-	protected function get_report_data( $from, $to ) {
+	public function get_report_data( $from, $to ) {
 		global $wpdb;
 
 		$carts  = wcr_table( 'carts' );
