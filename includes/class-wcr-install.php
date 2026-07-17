@@ -26,6 +26,32 @@ class WCR_Install {
 	 */
 	public static function activate() {
 		self::run_migrations();
+		self::ensure_token_secret();
+	}
+
+	/**
+	 * Generates the per-site HMAC signing secret once and stores it non-autoloaded.
+	 *
+	 * A dedicated 32-byte secret, not a WordPress salt, so unrelated salt rotation
+	 * never invalidates outstanding recovery links. Only regenerated when missing.
+	 *
+	 * @return void
+	 */
+	public static function ensure_token_secret() {
+		$existing = get_option( 'wcr_token_secret' );
+
+		if ( is_string( $existing ) && '' !== $existing ) {
+			return;
+		}
+
+		try {
+			$secret = bin2hex( random_bytes( 32 ) );
+		} catch ( Exception $e ) {
+			wcr_log( 'error', 'Failed to generate the token signing secret.' );
+			return;
+		}
+
+		add_option( 'wcr_token_secret', $secret, '', false );
 	}
 
 	/**
