@@ -75,6 +75,11 @@ class WCR_Plugin {
 			$wcr_sender->register();
 		}
 
+		if ( class_exists( 'WCR_Endpoints' ) ) {
+			$wcr_endpoints = new WCR_Endpoints();
+			$wcr_endpoints->register();
+		}
+
 		if ( is_admin() && class_exists( 'WCR_Admin' ) ) {
 			$wcr_admin = new WCR_Admin();
 			$wcr_admin->register();
@@ -93,6 +98,7 @@ class WCR_Plugin {
 			'includes/class-wcr-capture.php',
 			'includes/class-wcr-abandonment.php',
 			'includes/class-wcr-sender.php',
+			'includes/class-wcr-endpoints.php',
 			'includes/class-wcr-admin.php',
 		);
 
