@@ -228,3 +228,71 @@ function wcr_is_opted_out( $email ) {
 
 	return ! empty( $found );
 }
+
+/**
+ * Clamps an integer into an inclusive range.
+ *
+ * @param mixed $value Raw value.
+ * @param int   $min   Lower bound.
+ * @param int   $max   Upper bound.
+ * @return int
+ */
+function wcr_clamp( $value, $min, $max ) {
+	$value = (int) $value;
+
+	if ( $value < $min ) {
+		return $min;
+	}
+
+	if ( $value > $max ) {
+		return $max;
+	}
+
+	return $value;
+}
+
+/**
+ * Sanitizes and bounds the settings option on save.
+ *
+ * Merges over the current settings so fields not present in a given form are
+ * preserved. Out-of-range numbers are clamped and a settings-error notice
+ * explains each clamp when the admin notices API is available.
+ *
+ * @param mixed $input Raw posted settings.
+ * @return array Clean settings.
+ */
+function wcr_sanitize_settings( $input ) {
+	$current  = wcr_get_settings();
+	$defaults = wcr_default_settings();
+	$clean    = $current;
+
+	if ( ! is_array( $input ) ) {
+		$input = array();
+	}
+
+	$clean['enabled'] = ! empty( $input['enabled'] );
+
+	$idle                 = isset( $input['idle_window'] ) ? absint( $input['idle_window'] ) : (int) $current['idle_window'];
+	$clean['idle_window'] = wcr_clamp( $idle, 5, 10080 );
+
+	if ( $clean['idle_window'] !== $idle && function_exists( 'add_settings_error' ) ) {
+		add_settings_error( 'wcr_settings', 'wcr_idle_clamped', __( 'The idle window was adjusted to the allowed range (5 to 10080 minutes).', 'woo-cart-rescue' ), 'warning' );
+	}
+
+	$retention               = isset( $input['retention_days'] ) ? absint( $input['retention_days'] ) : (int) $current['retention_days'];
+	$clean['retention_days'] = wcr_clamp( $retention, 1, 3650 );
+
+	if ( $clean['retention_days'] !== $retention && function_exists( 'add_settings_error' ) ) {
+		add_settings_error( 'wcr_settings', 'wcr_retention_clamped', __( 'The retention window was adjusted to the allowed range (1 to 3650 days).', 'woo-cart-rescue' ), 'warning' );
+	}
+
+	$label = isset( $input['consent_label'] ) ? trim( sanitize_text_field( $input['consent_label'] ) ) : (string) $current['consent_label'];
+
+	if ( '' === $label ) {
+		$label = $defaults['consent_label'];
+	}
+
+	$clean['consent_label'] = $label;
+
+	return $clean;
+}
