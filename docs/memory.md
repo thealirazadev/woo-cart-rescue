@@ -18,9 +18,23 @@ log every non-obvious decision WITH its reason.
   clean (20 files), `composer run test` green (7 tests / unit mode). Integration test
   `test-capture.php` written to the WP-suite contract, no-ops here.
 
+- Phase 2 COMPLETE. `WCR_Token` (HMAC build/parse/verify/hash/generate/is_expired + validate_restore
+  and validate_unsubscribe per api-contracts); resume-safe `wcr_enqueue_send`; abandonment sweep with
+  full eligibility (idle, email present, non-empty, no order since capture via CRUD, not opted out,
+  batch 200) and atomic abandon transition; reactivation on new activity with pending-send cancel;
+  recovery email class + HTML/plain templates + merge-tag helper; race-safe sender (atomic claim then
+  send-time recheck, token stored as hash+expiry, sent/failed events, no retry loop); restore endpoint
+  (single-use claim, cart rebuild skipping unpurchasable items, attribution session keys, generic
+  failure notice); unsubscribe endpoint (signature-only, cancel + opt-out hash, idempotent,
+  confirmation template); order-placed cancellation (status set before send-cancel for race safety);
+  daily retention cleanup (purge non-recovered + anonymize recovered) and privacy exporter/eraser.
+  Verification: `composer run lint` clean (30 files), `composer run test` green (19 tests, unit mode).
+  Integration tests (abandonment, sender, endpoints, privacy, orders) written to the WP-suite
+  contract, seeding rows via $wpdb; they no-op here and run under wp-env/CI.
+
 ## In progress
 
-- Phase 2: abandonment, step-1 email, secure restore, data lifecycle.
+- Phase 3: full three-step sequence.
 
 ## Decisions log
 
@@ -53,6 +67,15 @@ log every non-obvious decision WITH its reason.
   would reference an undefined function. Only these two adjacent Phase-1 commits were reordered.
 - Owner instruction mid-run: make small granular commits (each migration/helper/endpoint/test its
   own commit). Applied from the migration runner onward.
-- Added test files beyond the proposed tree: `tests/test-settings.php` (pure unit for settings
-  clamping). The architecture file tree is "proposed"; testing.md explicitly mandates settings and
-  merge-tag unit tests, so dedicated files are added as needed and kept one-class-per-file.
+- Added test files beyond the proposed tree: `tests/test-settings.php`, `tests/test-merge-tags.php`
+  (pure unit), and `tests/test-endpoints.php` (integration for restore token states + unsubscribe).
+  The architecture file tree is "proposed"; testing.md mandates these unit tests, so dedicated files
+  are added as needed and kept one-class-per-file.
+- `WCR_Endpoints::apply_unsubscribe()` is public (not protected) so the unsubscribe side effect is
+  directly testable without a test-only subclass (which would break one-class-per-file / FileName).
+- Retention purge keyed on `last_activity_at < cutoff` with status NOT IN (recovered, anonymized).
+  Retention setting min stays 1 (Phase-1 committed/tested); the cleanup test forces purging with
+  backdated rows rather than retention 0, satisfying the manual "retention 0" step's intent.
+- Send race-safety ordering chosen: claim (scheduled->sending) FIRST, then recheck cart status as
+  late as possible before dispatch. Order-placed and unsubscribe both flip cart status BEFORE
+  cancelling sends, so an in-flight worker's recheck sees the non-abandoned state and stops.
