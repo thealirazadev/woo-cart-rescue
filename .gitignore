@@ -1,0 +1,40 @@
+# Environment and credentials.
+.env
+.env.*
+!.env.example
+*.env
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.secret
+.htpasswd
+auth.json
+composer-auth.json
+credentials.json
+secrets/
+wp-config.php
+
+# Dependencies.
+vendor/
+node_modules/
+
+# Build and test artifacts.
+build/
+dist/
+*.zip
+coverage/
+.phpunit.result.cache
+.phpunit.cache/
+.phpcs-cache
+*.log
+
+# Editors and operating systems.
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~

@@ -1,0 +1,32 @@
+{
+    "name": "thealirazadev/woo-cart-rescue",
+    "description": "Consent-gated abandoned cart recovery for WooCommerce.",
+    "type": "wordpress-plugin",
+    "version": "1.0.0",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.1"
+    },
+    "require-dev": {
+        "phpcompatibility/phpcompatibility-wp": "2.1.8",
+        "phpunit/phpunit": "9.6.35",
+        "squizlabs/php_codesniffer": "3.13.5",
+        "wp-coding-standards/wpcs": "3.3.0",
+        "yoast/phpunit-polyfills": "4.0.0"
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": false
+        },
+        "platform": {
+            "php": "8.1.0"
+        },
+        "sort-packages": true
+    },
+    "scripts": {
+        "build": "wp dist-archive . build/woo-cart-rescue.zip --create-target-dir",
+        "lint": "phpcs",
+        "lint:fix": "phpcbf",
+        "test": "phpunit"
+    }
+}
