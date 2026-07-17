@@ -250,6 +250,104 @@ function wcr_log_event( $cart_id, $send_id, $type, $meta = array() ) {
 }
 
 /**
+ * Schedules a recovery send for a cart step, resume-safe.
+ *
+ * Reuses the unique (cart_id, step) row. An already sent, scheduled, or sending
+ * step is left untouched so a step is never re-sent or duplicated; a cancelled
+ * or failed step is reset to scheduled so an interrupted sequence resumes.
+ *
+ * @param int    $cart_id       Cart row id.
+ * @param int    $step          Step number 1..3.
+ * @param string $scheduled_for UTC MySQL datetime to run at.
+ * @return int Send row id, or 0 when skipped or on failure.
+ */
+function wcr_enqueue_send( $cart_id, $step, $scheduled_for ) {
+	global $wpdb;
+
+	$table = wcr_table( 'sends' );
+
+	if ( '' === $table ) {
+		return 0;
+	}
+
+	$cart_id = absint( $cart_id );
+	$step    = absint( $step );
+	$now     = wcr_now();
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted whitelisted table name; values are prepared.
+	$existing = $wpdb->get_row( $wpdb->prepare( "SELECT id, status FROM {$table} WHERE cart_id = %d AND step = %d", $cart_id, $step ) );
+
+	if ( $existing ) {
+		if ( in_array( $existing->status, array( 'sent', 'scheduled', 'sending' ), true ) ) {
+			return 0;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Reset a cancelled/failed step so the sequence can resume.
+		$reset = $wpdb->update(
+			$table,
+			array(
+				'status'           => 'scheduled',
+				'scheduled_for'    => $scheduled_for,
+				'token_hash'       => null,
+				'token_expires_at' => null,
+				'token_used_at'    => null,
+				'sent_at'          => null,
+				'updated_at'       => $now,
+			),
+			array( 'id' => absint( $existing->id ) ),
+			array( '%s', '%s', '%s', '%s', '%s', '%s', '%s' ),
+			array( '%d' )
+		);
+
+		if ( false === $reset ) {
+			wcr_log( 'error', 'Failed to reset a send row for resume.', array( 'send_id' => absint( $existing->id ) ) );
+			return 0;
+		}
+
+		$send_id = absint( $existing->id );
+	} else {
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- First send row for this cart step.
+		$inserted = $wpdb->insert(
+			$table,
+			array(
+				'cart_id'       => $cart_id,
+				'step'          => $step,
+				'status'        => 'scheduled',
+				'scheduled_for' => $scheduled_for,
+				'created_at'    => $now,
+				'updated_at'    => $now,
+			),
+			array( '%d', '%d', '%s', '%s', '%s', '%s' )
+		);
+
+		if ( false === $inserted ) {
+			wcr_log(
+				'error',
+				'Failed to insert a send row.',
+				array(
+					'cart_id' => $cart_id,
+					'step'    => $step,
+				)
+			);
+			return 0;
+		}
+
+		$send_id = (int) $wpdb->insert_id;
+	}
+
+	if ( function_exists( 'as_schedule_single_action' ) ) {
+		$timestamp = (int) strtotime( $scheduled_for . ' UTC' );
+		$action_id = as_schedule_single_action( $timestamp, 'wcr_send_step', array( $send_id ), 'woo-cart-rescue' );
+
+		if ( ! $action_id ) {
+			wcr_log( 'error', 'Failed to schedule a send action.', array( 'send_id' => $send_id ) );
+		}
+	}
+
+	return $send_id;
+}
+
+/**
  * Hashes an email for the opt-out suppression list.
  *
  * Lowercased and trimmed first so address variants map to one hash. The plain
