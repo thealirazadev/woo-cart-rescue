@@ -17,7 +17,7 @@ class WCR_Install {
 	/**
 	 * Highest migration number the current code knows how to apply.
 	 */
-	const DB_VERSION = 0;
+	const DB_VERSION = 1;
 
 	/**
 	 * Runs the full activation routine: migrations, secret, and scheduled actions.
@@ -53,6 +53,86 @@ class WCR_Install {
 			}
 
 			update_option( 'wcr_db_version', $version, false );
+		}
+	}
+
+	/**
+	 * Migration 1: the four core tables (carts, sends, events, optouts).
+	 *
+	 * @return void
+	 */
+	private static function migrate_1() {
+		global $wpdb;
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+		$charset_collate = $wpdb->get_charset_collate();
+		$prefix          = $wpdb->prefix;
+
+		$schemas = array();
+
+		$schemas[] = "CREATE TABLE {$prefix}wcr_carts (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			cart_key VARCHAR(64) NOT NULL,
+			user_id BIGINT UNSIGNED NULL,
+			email VARCHAR(191) NULL,
+			consent TINYINT(1) NOT NULL DEFAULT 0,
+			cart_contents LONGTEXT NULL,
+			cart_total DECIMAL(19,4) NOT NULL DEFAULT 0,
+			currency CHAR(3) NOT NULL DEFAULT '',
+			status VARCHAR(20) NOT NULL DEFAULT 'active',
+			recovered_order_id BIGINT UNSIGNED NULL,
+			recovered_total DECIMAL(19,4) NULL,
+			recovered_at DATETIME NULL,
+			last_activity_at DATETIME NOT NULL,
+			abandoned_at DATETIME NULL,
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY cart_key (cart_key),
+			KEY status_activity (status, last_activity_at),
+			KEY email (email)
+		) {$charset_collate};";
+
+		$schemas[] = "CREATE TABLE {$prefix}wcr_sends (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			cart_id BIGINT UNSIGNED NOT NULL,
+			step TINYINT UNSIGNED NOT NULL,
+			status VARCHAR(20) NOT NULL DEFAULT 'scheduled',
+			token_hash CHAR(64) NULL,
+			token_expires_at DATETIME NULL,
+			token_used_at DATETIME NULL,
+			scheduled_for DATETIME NOT NULL,
+			sent_at DATETIME NULL,
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY cart_step (cart_id, step),
+			KEY status_scheduled (status, scheduled_for)
+		) {$charset_collate};";
+
+		$schemas[] = "CREATE TABLE {$prefix}wcr_events (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			cart_id BIGINT UNSIGNED NOT NULL,
+			send_id BIGINT UNSIGNED NULL,
+			type VARCHAR(32) NOT NULL,
+			meta LONGTEXT NULL,
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			KEY type_created (type, created_at),
+			KEY cart_id (cart_id)
+		) {$charset_collate};";
+
+		$schemas[] = "CREATE TABLE {$prefix}wcr_optouts (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			email_hash CHAR(64) NOT NULL,
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY email_hash (email_hash)
+		) {$charset_collate};";
+
+		foreach ( $schemas as $schema ) {
+			dbDelta( $schema );
 		}
 	}
 }
