@@ -81,6 +81,7 @@ class WCR_Admin {
 		add_settings_field( 'wcr_idle_window', __( 'Idle window (minutes)', 'woo-cart-rescue' ), array( $this, 'field_idle_window' ), self::PAGE_SECTION, 'wcr_general' );
 		add_settings_field( 'wcr_retention_days', __( 'Retention (days)', 'woo-cart-rescue' ), array( $this, 'field_retention_days' ), self::PAGE_SECTION, 'wcr_general' );
 		add_settings_field( 'wcr_token_ttl_days', __( 'Restore link lifetime (days)', 'woo-cart-rescue' ), array( $this, 'field_token_ttl_days' ), self::PAGE_SECTION, 'wcr_general' );
+		add_settings_field( 'wcr_attribution_days', __( 'Attribution window (days)', 'woo-cart-rescue' ), array( $this, 'field_attribution_days' ), self::PAGE_SECTION, 'wcr_general' );
 		add_settings_field( 'wcr_consent_label', __( 'Consent checkbox label', 'woo-cart-rescue' ), array( $this, 'field_consent_label' ), self::PAGE_SECTION, 'wcr_general' );
 
 		add_settings_section(
@@ -163,6 +164,19 @@ class WCR_Admin {
 		?>
 		<input type="number" id="wcr_token_ttl_days" name="wcr_settings[token_ttl_days]" min="1" max="365" step="1" value="<?php echo esc_attr( (string) $settings['token_ttl_days'] ); ?>" />
 		<p class="description"><?php esc_html_e( 'How long a restore link stays valid after it is sent (1 to 365 days).', 'woo-cart-rescue' ); ?></p>
+		<?php
+	}
+
+	/**
+	 * Renders the attribution-window field.
+	 *
+	 * @return void
+	 */
+	public function field_attribution_days() {
+		$settings = wcr_get_settings();
+		?>
+		<input type="number" id="wcr_attribution_days" name="wcr_settings[attribution_days]" min="0" max="365" step="1" value="<?php echo esc_attr( (string) $settings['attribution_days'] ); ?>" />
+		<p class="description"><?php esc_html_e( 'Days after a restore click during which an order counts as recovered (0 to 365).', 'woo-cart-rescue' ); ?></p>
 		<?php
 	}
 

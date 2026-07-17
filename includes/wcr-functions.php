@@ -616,6 +616,9 @@ function wcr_sanitize_settings( $input ) {
 	$ttl                     = isset( $input['token_ttl_days'] ) ? absint( $input['token_ttl_days'] ) : (int) $current['token_ttl_days'];
 	$clean['token_ttl_days'] = wcr_clamp( $ttl, 1, 365 );
 
+	$attribution               = isset( $input['attribution_days'] ) ? absint( $input['attribution_days'] ) : (int) $current['attribution_days'];
+	$clean['attribution_days'] = wcr_clamp( $attribution, 0, 365 );
+
 	$label = isset( $input['consent_label'] ) ? trim( sanitize_text_field( $input['consent_label'] ) ) : (string) $current['consent_label'];
 
 	if ( '' === $label ) {
