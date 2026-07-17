@@ -32,9 +32,16 @@ log every non-obvious decision WITH its reason.
   Integration tests (abandonment, sender, endpoints, privacy, orders) written to the WP-suite
   contract, seeding rows via $wpdb; they no-op here and run under wp-env/CI.
 
+- Phase 3 COMPLETE. Per-step enable/delay settings + restore-link TTL field with server-side
+  clamping; sender chains the next enabled step after a successful send (delay from this send);
+  three `WCR_Email_Recovery` steps registered via `woocommerce_email_classes` (editable
+  subject/heading per id); sweep resumes at the first enabled unsent step via `wcr_next_unsent_step`.
+  Verification: lint clean, `composer run test` green (21 tests, unit mode). Integration coverage for
+  chaining/skips/cross-step cancellation/resume added (runs under wp-env/CI).
+
 ## In progress
 
-- Phase 3: full three-step sequence.
+- Phase 4: attribution and admin report.
 
 ## Decisions log
 
@@ -79,3 +86,7 @@ log every non-obvious decision WITH its reason.
 - Send race-safety ordering chosen: claim (scheduled->sending) FIRST, then recheck cart status as
   late as possible before dispatch. Order-placed and unsubscribe both flip cart status BEFORE
   cancelling sends, so an in-flight worker's recheck sees the non-abandoned state and stops.
+- Deviation from design.md: per-step delay inputs are NOT rendered with the `disabled` attribute
+  when a step is toggled off. Disabled inputs are not POSTed, which would drop a saved delay on the
+  next save. Delays stay editable/submittable; the enable checkbox alone gates the step. Logged per
+  the "flag deviations" rule.
