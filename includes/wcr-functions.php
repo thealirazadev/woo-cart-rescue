@@ -192,3 +192,39 @@ function wcr_log_event( $cart_id, $send_id, $type, $meta = array() ) {
 		wcr_log( 'error', 'Failed to write an event row.', array( 'type' => (string) $type ) );
 	}
 }
+
+/**
+ * Hashes an email for the opt-out suppression list.
+ *
+ * Lowercased and trimmed first so address variants map to one hash. The plain
+ * address is never stored anywhere in the plugin's tables.
+ *
+ * @param string $email Email address.
+ * @return string Lowercase sha256 hex hash.
+ */
+function wcr_email_hash( $email ) {
+	return hash( 'sha256', strtolower( trim( (string) $email ) ) );
+}
+
+/**
+ * Checks whether an email is on the opt-out suppression list.
+ *
+ * @param string $email Email address.
+ * @return bool
+ */
+function wcr_is_opted_out( $email ) {
+	global $wpdb;
+
+	$table = wcr_table( 'optouts' );
+
+	if ( '' === $table ) {
+		return false;
+	}
+
+	$hash = wcr_email_hash( $email );
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted whitelisted table name; value is prepared.
+	$found = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE email_hash = %s", $hash ) );
+
+	return ! empty( $found );
+}
