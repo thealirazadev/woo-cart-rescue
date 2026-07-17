@@ -1,0 +1,357 @@
+# Copyright (C) 2026 
+# This file is distributed under the MIT.
+msgid ""
+msgstr ""
+"Project-Id-Version: WooCommerce Cart Rescue 1.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/woo-cart-rescue\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-07-17T23:41:19+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: woo-cart-rescue\n"
+
+#. Plugin Name of the plugin
+#: woo-cart-rescue.php
+#: includes/class-wcr-privacy.php:36
+#: includes/class-wcr-privacy.php:51
+msgid "WooCommerce Cart Rescue"
+msgstr ""
+
+#. Plugin URI of the plugin
+#: woo-cart-rescue.php
+msgid "https://github.com/thealirazadev/woo-cart-rescue"
+msgstr ""
+
+#. Description of the plugin
+#: woo-cart-rescue.php
+msgid "Consent-gated abandoned cart recovery for WooCommerce with signed restore links, a race-safe email sequence, and a GDPR data lifecycle."
+msgstr ""
+
+#: includes/class-wcr-admin.php:64
+#: includes/class-wcr-admin.php:65
+#: includes/class-wcr-admin.php:256
+msgid "Cart Rescue"
+msgstr ""
+
+#: includes/class-wcr-admin.php:90
+msgid "General"
+msgstr ""
+
+#: includes/class-wcr-admin.php:95
+msgid "Enable cart recovery"
+msgstr ""
+
+#: includes/class-wcr-admin.php:96
+msgid "Idle window (minutes)"
+msgstr ""
+
+#: includes/class-wcr-admin.php:97
+msgid "Retention (days)"
+msgstr ""
+
+#: includes/class-wcr-admin.php:98
+msgid "Restore link lifetime (days)"
+msgstr ""
+
+#: includes/class-wcr-admin.php:99
+msgid "Attribution window (days)"
+msgstr ""
+
+#: includes/class-wcr-admin.php:100
+msgid "Consent checkbox label"
+msgstr ""
+
+#: includes/class-wcr-admin.php:104
+msgid "Recovery email steps"
+msgstr ""
+
+#. translators: %d: recovery step number.
+#: includes/class-wcr-admin.php:113
+#, php-format
+msgid "Step %d"
+msgstr ""
+
+#: includes/class-wcr-admin.php:128
+msgid "Control how carts are captured and when idle carts become eligible for recovery."
+msgstr ""
+
+#: includes/class-wcr-admin.php:141
+msgid "Track carts and send recovery emails."
+msgstr ""
+
+#: includes/class-wcr-admin.php:155
+msgid "Minutes of inactivity before a cart is considered abandoned (5 to 10080)."
+msgstr ""
+
+#: includes/class-wcr-admin.php:168
+msgid "Days to keep non-recovered cart data before it is purged (1 to 3650)."
+msgstr ""
+
+#: includes/class-wcr-admin.php:181
+msgid "How long a restore link stays valid after it is sent (1 to 365 days)."
+msgstr ""
+
+#: includes/class-wcr-admin.php:194
+msgid "Days after a restore click during which an order counts as recovered (0 to 365)."
+msgstr ""
+
+#: includes/class-wcr-admin.php:204
+msgid "Up to three reminders. Step 1 is delayed from abandonment; steps 2 and 3 from the previous send. Disabled steps are skipped."
+msgstr ""
+
+#: includes/class-wcr-admin.php:219
+msgid "Send this reminder"
+msgstr ""
+
+#: includes/class-wcr-admin.php:222
+msgid "Delay (minutes):"
+msgstr ""
+
+#: includes/class-wcr-admin.php:237
+msgid "Shown next to the checkout consent checkbox. Name what is stored and why."
+msgstr ""
+
+#: includes/class-wcr-admin.php:258
+msgid "Settings"
+msgstr ""
+
+#: includes/class-wcr-admin.php:259
+msgid "Report"
+msgstr ""
+
+#: includes/class-wcr-admin.php:308
+msgid "From"
+msgstr ""
+
+#: includes/class-wcr-admin.php:310
+msgid "To"
+msgstr ""
+
+#: includes/class-wcr-admin.php:312
+msgid "Filter"
+msgstr ""
+
+#: includes/class-wcr-admin.php:318
+msgid "Carts abandoned"
+msgstr ""
+
+#: includes/class-wcr-admin.php:322
+msgid "Emails sent"
+msgstr ""
+
+#. translators: 1: step 1 count, 2: step 2 count, 3: step 3 count.
+#: includes/class-wcr-admin.php:328
+#, php-format
+msgid "Step 1: %1$s, Step 2: %2$s, Step 3: %3$s"
+msgstr ""
+
+#: includes/class-wcr-admin.php:337
+msgid "Recovered orders"
+msgstr ""
+
+#: includes/class-wcr-admin.php:341
+msgid "Recovered revenue"
+msgstr ""
+
+#: includes/class-wcr-admin.php:345
+msgid "Recovery rate"
+msgstr ""
+
+#: includes/class-wcr-admin.php:349
+msgid "Opens: not tracked."
+msgstr ""
+
+#: includes/class-wcr-admin.php:351
+msgid "No cart activity in this range yet."
+msgstr ""
+
+#: includes/class-wcr-capture.php:116
+msgid "Your session has expired. Please refresh the page and try again."
+msgstr ""
+
+#: includes/class-wcr-capture.php:128
+msgid "Cart saving is currently unavailable."
+msgstr ""
+
+#: includes/class-wcr-capture.php:140
+msgid "Please enter a valid email address."
+msgstr ""
+
+#: includes/class-wcr-capture.php:152
+msgid "Please tick the consent box to save your cart."
+msgstr ""
+
+#: includes/class-wcr-capture.php:195
+msgid "Privacy Policy"
+msgstr ""
+
+#. translators: %d: recovery step number.
+#: includes/class-wcr-email-recovery.php:55
+#, php-format
+msgid "Cart recovery: step %d"
+msgstr ""
+
+#: includes/class-wcr-email-recovery.php:56
+msgid "Reminder sent to a shopper who left items in their cart."
+msgstr ""
+
+#: includes/class-wcr-email-recovery.php:73
+msgid "You left something in your cart"
+msgstr ""
+
+#: includes/class-wcr-email-recovery.php:82
+msgid "Your cart is waiting"
+msgstr ""
+
+#: includes/class-wcr-email-recovery.php:132
+msgid "there"
+msgstr ""
+
+#: includes/class-wcr-email-recovery.php:204
+msgid "Item"
+msgstr ""
+
+#: includes/class-wcr-email-recovery.php:240
+#: templates/emails/recovery.php:80
+msgid "Unsubscribe from cart reminders"
+msgstr ""
+
+#: includes/class-wcr-endpoints.php:175
+msgid "We saved your cart. You can finish checking out below."
+msgstr ""
+
+#: includes/class-wcr-endpoints.php:192
+msgid "This link is no longer valid."
+msgstr ""
+
+#. translators: %d: number of saved items no longer available.
+#: includes/class-wcr-endpoints.php:248
+#, php-format
+msgid "%d item from your saved cart is no longer available."
+msgid_plural "%d items from your saved cart are no longer available."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/class-wcr-privacy.php:80
+msgid "Abandoned cart records"
+msgstr ""
+
+#: includes/class-wcr-privacy.php:84
+msgid "Status"
+msgstr ""
+
+#: includes/class-wcr-privacy.php:88
+msgid "Cart total"
+msgstr ""
+
+#: includes/class-wcr-privacy.php:92
+msgid "Captured at"
+msgstr ""
+
+#: includes/class-wcr-privacy.php:96
+msgid "Last activity at"
+msgstr ""
+
+#: includes/wcr-functions.php:69
+msgid "Email me a reminder if I do not finish checking out."
+msgstr ""
+
+#: includes/wcr-functions.php:615
+msgid "The idle window was adjusted to the allowed range (5 to 10080 minutes)."
+msgstr ""
+
+#: includes/wcr-functions.php:622
+msgid "The retention window was adjusted to the allowed range (1 to 3650 days)."
+msgstr ""
+
+#. translators: %s: customer first name or a neutral fallback.
+#: templates/emails/plain/recovery.php:23
+#: templates/emails/recovery.php:27
+#, php-format
+msgid "Hi %s,"
+msgstr ""
+
+#: templates/emails/plain/recovery.php:26
+msgid "You left the following in your cart:"
+msgstr ""
+
+#. translators: %d: number of additional cart items not shown.
+#: templates/emails/plain/recovery.php:35
+#: templates/emails/recovery.php:54
+#, php-format
+msgid "and %d more item"
+msgid_plural "and %d more items"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: formatted cart total.
+#: templates/emails/plain/recovery.php:40
+#, php-format
+msgid "Cart total: %s"
+msgstr ""
+
+#: templates/emails/plain/recovery.php:43
+msgid "Return to your cart:"
+msgstr ""
+
+#: templates/emails/plain/recovery.php:46
+msgid "Unsubscribe from cart reminders:"
+msgstr ""
+
+#: templates/emails/recovery.php:31
+msgid "You left the following in your cart. We saved it so you can pick up where you left off."
+msgstr ""
+
+#: templates/emails/recovery.php:36
+msgid "Product"
+msgstr ""
+
+#: templates/emails/recovery.php:37
+msgid "Quantity"
+msgstr ""
+
+#: templates/emails/recovery.php:38
+msgid "Total"
+msgstr ""
+
+#: templates/emails/recovery.php:62
+msgid "Cart total:"
+msgstr ""
+
+#: templates/emails/recovery.php:68
+msgid "Return to your cart"
+msgstr ""
+
+#: templates/emails/recovery.php:75
+msgid "If the button does not work, copy and paste this link into your browser:"
+msgstr ""
+
+#: templates/unsubscribe-confirmed.php:20
+msgid "You have been unsubscribed"
+msgstr ""
+
+#. translators: %s: site title.
+#: templates/unsubscribe-confirmed.php:24
+#, php-format
+msgid "You will not receive further cart reminder emails from %s."
+msgstr ""
+
+#: templates/unsubscribe-confirmed.php:28
+msgid "Unsubscribe"
+msgstr ""
+
+#: templates/unsubscribe-confirmed.php:29
+msgid "This link is not valid."
+msgstr ""
+
+#: templates/unsubscribe-confirmed.php:31
+msgid "Return to shop"
+msgstr ""
+
+#: woo-cart-rescue.php:151
+msgid "WooCommerce Cart Rescue requires WooCommerce to be installed and active."
+msgstr ""
