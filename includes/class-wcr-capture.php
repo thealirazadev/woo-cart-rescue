@@ -21,6 +21,43 @@ class WCR_Capture {
 	 */
 	public function register() {
 		add_action( 'woocommerce_cart_updated', array( $this, 'capture_logged_in' ) );
+		add_action( 'woocommerce_after_checkout_billing_form', array( $this, 'render_consent_field' ) );
+	}
+
+	/**
+	 * Renders the unchecked-by-default consent checkbox on the classic checkout.
+	 *
+	 * The checkbox gates capture only; it never blocks checkout and has no error
+	 * state. A privacy-policy link is appended when the site defines one.
+	 *
+	 * @return void
+	 */
+	public function render_consent_field() {
+		$settings = wcr_get_settings();
+
+		if ( empty( $settings['enabled'] ) ) {
+			return;
+		}
+
+		$label = isset( $settings['consent_label'] ) ? trim( (string) $settings['consent_label'] ) : '';
+
+		if ( '' === $label ) {
+			$defaults = wcr_default_settings();
+			$label    = $defaults['consent_label'];
+		}
+
+		$privacy_url = function_exists( 'get_privacy_policy_url' ) ? get_privacy_policy_url() : '';
+		?>
+		<p class="form-row wcr-consent-row" id="wcr_consent_field">
+			<label class="woocommerce-form__label woocommerce-form__label-for-checkbox checkbox" for="wcr_consent">
+				<input type="checkbox" class="woocommerce-form__input woocommerce-form__input-checkbox input-checkbox" name="wcr_consent" id="wcr_consent" value="1" />
+				<span><?php echo esc_html( $label ); ?></span>
+				<?php if ( '' !== $privacy_url ) : ?>
+					<a href="<?php echo esc_url( $privacy_url ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Privacy Policy', 'woo-cart-rescue' ); ?></a>
+				<?php endif; ?>
+			</label>
+		</p>
+		<?php
 	}
 
 	/**
