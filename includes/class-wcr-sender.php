@@ -98,10 +98,33 @@ class WCR_Sender {
 		if ( $sent ) {
 			$this->mark( $send_id, 'sent', $now );
 			wcr_log_event( (int) $cart->id, $send_id, 'email_sent', array( 'step' => (int) $send->step ) );
+			$this->chain_next( (int) $send->step, (int) $cart->id );
 		} else {
 			$this->mark( $send_id, 'failed' );
 			wcr_log_event( (int) $cart->id, $send_id, 'email_failed', array( 'step' => (int) $send->step ) );
 			wcr_log( 'error', 'Recovery email failed to send.', array( 'send_id' => $send_id ) );
+		}
+	}
+
+	/**
+	 * Schedules the next enabled step, delay measured from this send.
+	 *
+	 * @param int $current_step Step that just sent.
+	 * @param int $cart_id      Cart row id.
+	 * @return void
+	 */
+	protected function chain_next( $current_step, $cart_id ) {
+		for ( $next = $current_step + 1; $next <= 3; $next++ ) {
+			$config = wcr_get_step_config( $next );
+
+			if ( empty( $config['enabled'] ) ) {
+				continue;
+			}
+
+			$scheduled_for = gmdate( 'Y-m-d H:i:s', time() + ( $config['delay'] * MINUTE_IN_SECONDS ) );
+			wcr_enqueue_send( $cart_id, $next, $scheduled_for );
+
+			return;
 		}
 	}
 
