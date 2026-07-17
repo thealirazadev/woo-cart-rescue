@@ -50,9 +50,24 @@ log every non-obvious decision WITH its reason.
   `composer run test` green (21 tests, unit mode); attribution-edge and report-query integration tests
   added.
 
-## In progress
+- Phase 5 COMPLETE. HPOS compatibility declared via `FeaturesUtil` on `before_woocommerce_init`;
+  text domain loaded on `init` and all user-facing strings confirmed wrapped; `languages/
+  woo-cart-rescue.pot` generated with wp-cli (79 strings, tests/vendor excluded); suggested
+  privacy-policy text registered via `wp_add_privacy_policy_content`; `uninstall.php` drops the four
+  tables, deletes `wcr_settings`/`wcr_db_version`/`wcr_token_secret` and the three step email option
+  rows, clears the activation transient, and unschedules the three group actions; `readme.txt` added;
+  root README updated. Verification: `composer run lint` clean (36 files), `composer run test` green
+  (21 tests, unit mode), all PHP files `php -l` clean, and a stubbed boot smoke-test loads all 11
+  classes, wires 18 hooks, and registers the 3 recovery emails with no fatal.
 
-- Phase 5: i18n, uninstall, distribution hardening.
+## Build status: v1.0.0 complete
+
+- All five phases implemented and committed one-feature-per-commit. Automated gates pass in this
+  environment: PHPCS (WPCS) clean, PHPUnit unit suite green. wp-env/live verification blocked by
+  network throttling to wordpress.org (see decision below); the WP-suite integration tests are
+  written to contract and run under wp-env/CI. Remaining human-only steps live in
+  docs/launch-checklist.md (real mailer deliverability, live restore/unsubscribe click-through,
+  staging retention/HPOS/export-erase runs, zip build inspection).
 
 ## Decisions log
 
