@@ -230,6 +230,69 @@ function wcr_is_opted_out( $email ) {
 }
 
 /**
+ * Loads a cart row by id.
+ *
+ * @param int $cart_id Cart row id.
+ * @return object|null Row object, or null when absent.
+ */
+function wcr_get_cart( $cart_id ) {
+	global $wpdb;
+
+	$table = wcr_table( 'carts' );
+
+	if ( '' === $table ) {
+		return null;
+	}
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted whitelisted table name; value is prepared.
+	$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", absint( $cart_id ) ) );
+
+	return $row ? $row : null;
+}
+
+/**
+ * Loads a cart row by its unique session key.
+ *
+ * @param string $cart_key WooCommerce session customer id.
+ * @return object|null Row object, or null when absent.
+ */
+function wcr_get_cart_by_key( $cart_key ) {
+	global $wpdb;
+
+	$table = wcr_table( 'carts' );
+
+	if ( '' === $table ) {
+		return null;
+	}
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted whitelisted table name; value is prepared.
+	$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE cart_key = %s", (string) $cart_key ) );
+
+	return $row ? $row : null;
+}
+
+/**
+ * Loads a send row by id.
+ *
+ * @param int $send_id Send row id.
+ * @return object|null Row object, or null when absent.
+ */
+function wcr_get_send( $send_id ) {
+	global $wpdb;
+
+	$table = wcr_table( 'sends' );
+
+	if ( '' === $table ) {
+		return null;
+	}
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted whitelisted table name; value is prepared.
+	$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", absint( $send_id ) ) );
+
+	return $row ? $row : null;
+}
+
+/**
  * Clamps an integer into an inclusive range.
  *
  * @param mixed $value Raw value.
