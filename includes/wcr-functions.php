@@ -43,6 +43,15 @@ function wcr_log( $level, $message, $context = array() ) {
 }
 
 /**
+ * Loads the plugin translation catalog.
+ *
+ * @return void
+ */
+function wcr_load_textdomain() {
+	load_plugin_textdomain( 'woo-cart-rescue', false, dirname( plugin_basename( WCR_PATH . 'woo-cart-rescue.php' ) ) . '/languages' );
+}
+
+/**
  * Returns the plugin's default settings.
  *
  * Single source of truth for defaults; every consumer reads through

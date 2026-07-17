@@ -196,5 +196,6 @@ function wcr_declare_hpos_compatibility() {
 register_activation_hook( __FILE__, 'wcr_activate' );
 add_action( 'before_woocommerce_init', 'wcr_declare_hpos_compatibility' );
 add_action( 'admin_init', 'wcr_maybe_show_activation_notice' );
+add_action( 'init', 'wcr_load_textdomain' );
 add_action( 'plugins_loaded', 'wcr_check_woocommerce', 1 );
 add_action( 'plugins_loaded', 'wcr_boot_plugin', 20 );
