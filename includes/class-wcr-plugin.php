@@ -65,6 +65,11 @@ class WCR_Plugin {
 			$wcr_capture->register();
 		}
 
+		if ( class_exists( 'WCR_Abandonment' ) ) {
+			$wcr_abandonment = new WCR_Abandonment();
+			$wcr_abandonment->register();
+		}
+
 		if ( is_admin() && class_exists( 'WCR_Admin' ) ) {
 			$wcr_admin = new WCR_Admin();
 			$wcr_admin->register();
@@ -80,6 +85,7 @@ class WCR_Plugin {
 		$wcr_files = array(
 			'includes/class-wcr-install.php',
 			'includes/class-wcr-capture.php',
+			'includes/class-wcr-abandonment.php',
 			'includes/class-wcr-admin.php',
 		);
 
