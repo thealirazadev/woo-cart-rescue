@@ -85,6 +85,11 @@ class WCR_Plugin {
 			$wcr_orders->register();
 		}
 
+		if ( class_exists( 'WCR_Privacy' ) ) {
+			$wcr_privacy = new WCR_Privacy();
+			$wcr_privacy->register();
+		}
+
 		if ( is_admin() && class_exists( 'WCR_Admin' ) ) {
 			$wcr_admin = new WCR_Admin();
 			$wcr_admin->register();
@@ -105,6 +110,7 @@ class WCR_Plugin {
 			'includes/class-wcr-sender.php',
 			'includes/class-wcr-endpoints.php',
 			'includes/class-wcr-orders.php',
+			'includes/class-wcr-privacy.php',
 			'includes/class-wcr-admin.php',
 		);
 
