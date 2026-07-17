@@ -348,6 +348,48 @@ function wcr_enqueue_send( $cart_id, $step, $scheduled_for ) {
 }
 
 /**
+ * Cancels every pending send for a cart and unschedules its actions.
+ *
+ * Targets scheduled and sending rows. The authoritative stop is the send-time
+ * cart-status recheck in the worker; this is the cleanup that keeps the queue
+ * from running at all.
+ *
+ * @param int $cart_id Cart row id.
+ * @return void
+ */
+function wcr_cancel_pending_sends( $cart_id ) {
+	global $wpdb;
+
+	$table   = wcr_table( 'sends' );
+	$cart_id = absint( $cart_id );
+
+	if ( '' === $table || 0 === $cart_id ) {
+		return;
+	}
+
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted whitelisted table name; values are prepared.
+	$pending = $wpdb->get_results(
+		$wpdb->prepare( "SELECT id FROM {$table} WHERE cart_id = %d AND status IN ('scheduled','sending')", $cart_id )
+	);
+
+	$cancelled = $wpdb->query(
+		$wpdb->prepare( "UPDATE {$table} SET status = 'cancelled', updated_at = %s WHERE cart_id = %d AND status IN ('scheduled','sending')", wcr_now(), $cart_id )
+	);
+	// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+	if ( false === $cancelled ) {
+		wcr_log( 'error', 'Failed to cancel pending sends.', array( 'cart_id' => $cart_id ) );
+		return;
+	}
+
+	if ( ! empty( $pending ) && function_exists( 'as_unschedule_all_actions' ) ) {
+		foreach ( $pending as $row ) {
+			as_unschedule_all_actions( 'wcr_send_step', array( (int) $row->id ), 'woo-cart-rescue' );
+		}
+	}
+}
+
+/**
  * Hashes an email for the opt-out suppression list.
  *
  * Lowercased and trimmed first so address variants map to one hash. The plain
