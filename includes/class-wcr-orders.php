@@ -117,18 +117,29 @@ class WCR_Orders {
 	 * @return void
 	 */
 	protected function mark_recovered( $cart, $order ) {
-		unset( $order );
-
 		global $wpdb;
 
 		$table = wcr_table( 'carts' );
 		$now   = wcr_now();
+		$total = (float) $order->get_total();
 
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted whitelisted table name; values are prepared.
-		$wpdb->query(
-			$wpdb->prepare( "UPDATE {$table} SET status = 'recovered', recovered_at = %s, updated_at = %s WHERE id = %d AND status IN ('active','abandoned')", $now, $now, absint( $cart->id ) )
+		$updated = $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$table} SET status = 'recovered', recovered_order_id = %d, recovered_total = %f, recovered_at = %s, updated_at = %s WHERE id = %d AND status IN ('active','abandoned')",
+				(int) $order->get_id(),
+				$total,
+				$now,
+				$now,
+				absint( $cart->id )
+			)
 		);
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		if ( $updated ) {
+			$order->update_meta_data( '_wcr_recovered_cart_id', absint( $cart->id ) );
+			$order->save();
+		}
 	}
 
 	/**
