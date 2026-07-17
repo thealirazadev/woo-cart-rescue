@@ -75,6 +75,8 @@ class WCR_Plugin {
 			$wcr_sender->register();
 		}
 
+		add_filter( 'woocommerce_email_classes', array( $this, 'register_recovery_emails' ) );
+
 		if ( class_exists( 'WCR_Endpoints' ) ) {
 			$wcr_endpoints = new WCR_Endpoints();
 			$wcr_endpoints->register();
@@ -94,6 +96,29 @@ class WCR_Plugin {
 			$wcr_admin = new WCR_Admin();
 			$wcr_admin->register();
 		}
+	}
+
+	/**
+	 * Registers the three recovery email steps with the WooCommerce mailer.
+	 *
+	 * Each id (wcr_recovery_step_1..3) gets its own editable subject and heading
+	 * under WooCommerce > Settings > Emails.
+	 *
+	 * @param array $emails Registered email classes.
+	 * @return array
+	 */
+	public function register_recovery_emails( $emails ) {
+		require_once WCR_PATH . 'includes/class-wcr-email-recovery.php';
+
+		if ( ! class_exists( 'WCR_Email_Recovery' ) ) {
+			return $emails;
+		}
+
+		for ( $step = 1; $step <= 3; $step++ ) {
+			$emails[ 'wcr_recovery_step_' . $step ] = new WCR_Email_Recovery( $step );
+		}
+
+		return $emails;
 	}
 
 	/**
