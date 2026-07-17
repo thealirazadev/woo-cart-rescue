@@ -50,6 +50,20 @@ class WCR_Plugin {
 		if ( class_exists( 'WCR_Install' ) ) {
 			WCR_Install::run_migrations();
 		}
+
+		$this->init_components();
+	}
+
+	/**
+	 * Instantiates components and registers their hooks.
+	 *
+	 * @return void
+	 */
+	private function init_components() {
+		if ( class_exists( 'WCR_Capture' ) ) {
+			$wcr_capture = new WCR_Capture();
+			$wcr_capture->register();
+		}
 	}
 
 	/**
@@ -60,6 +74,7 @@ class WCR_Plugin {
 	private function load_dependencies() {
 		$wcr_files = array(
 			'includes/class-wcr-install.php',
+			'includes/class-wcr-capture.php',
 		);
 
 		foreach ( $wcr_files as $wcr_file ) {
