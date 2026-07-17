@@ -23,6 +23,26 @@ class WCR_Privacy {
 		add_action( 'wcr_retention_cleanup', array( $this, 'cleanup' ) );
 		add_filter( 'wp_privacy_personal_data_exporters', array( $this, 'register_exporter' ) );
 		add_filter( 'wp_privacy_personal_data_erasers', array( $this, 'register_eraser' ) );
+		add_action( 'admin_init', array( $this, 'add_privacy_policy_content' ) );
+	}
+
+	/**
+	 * Registers suggested privacy-policy text with the core policy guide.
+	 *
+	 * @return void
+	 */
+	public function add_privacy_policy_content() {
+		if ( ! function_exists( 'wp_add_privacy_policy_content' ) ) {
+			return;
+		}
+
+		$content = wp_kses_post(
+			wpautop(
+				__( 'This store recovers abandoned carts. When you are signed in, or when you enter your email at checkout and tick the consent box, we store your email address, the contents of your cart, and activity timestamps so we can send you a reminder with a link back to your cart. Every reminder includes an unsubscribe link. Saved cart data is deleted or anonymized after a retention period, and can be exported or erased through this site\'s personal data tools.', 'woo-cart-rescue' )
+			)
+		);
+
+		wp_add_privacy_policy_content( 'WooCommerce Cart Rescue', $content );
 	}
 
 	/**
