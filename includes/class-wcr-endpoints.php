@@ -79,7 +79,7 @@ class WCR_Endpoints {
 	 * @param object $cart Cart row.
 	 * @return void
 	 */
-	protected function apply_unsubscribe( $cart ) {
+	public function apply_unsubscribe( $cart ) {
 		global $wpdb;
 
 		$carts = wcr_table( 'carts' );
