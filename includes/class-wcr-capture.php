@@ -276,33 +276,44 @@ class WCR_Capture {
 		$now      = wcr_now();
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted whitelisted table name; value is prepared.
-		$existing_id = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE cart_key = %s", $cart_key ) );
+		$existing = $wpdb->get_row( $wpdb->prepare( "SELECT id, status FROM {$table} WHERE cart_key = %s", $cart_key ) );
 
-		if ( $existing_id ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- In-place update of the captured cart row.
-			$updated = $wpdb->update(
-				$table,
-				array(
-					'user_id'          => $user_id ? absint( $user_id ) : null,
-					'email'            => $email,
-					'consent'          => $consent ? 1 : 0,
-					'cart_contents'    => $json,
-					'cart_total'       => $total,
-					'currency'         => $currency,
-					'last_activity_at' => $now,
-					'updated_at'       => $now,
-				),
-				array( 'id' => absint( $existing_id ) ),
-				array( '%d', '%s', '%d', '%s', '%f', '%s', '%s', '%s' ),
-				array( '%d' )
+		if ( $existing ) {
+			$data   = array(
+				'user_id'          => $user_id ? absint( $user_id ) : null,
+				'email'            => $email,
+				'consent'          => $consent ? 1 : 0,
+				'cart_contents'    => $json,
+				'cart_total'       => $total,
+				'currency'         => $currency,
+				'last_activity_at' => $now,
+				'updated_at'       => $now,
 			);
+			$format = array( '%d', '%s', '%d', '%s', '%f', '%s', '%s', '%s' );
+
+			// New activity revives an abandoned cart; other terminal states are left alone.
+			$reactivate = ( 'abandoned' === $existing->status );
+
+			if ( $reactivate ) {
+				$data['status']       = 'active';
+				$data['abandoned_at'] = null;
+				$format[]             = '%s';
+				$format[]             = '%s';
+			}
+
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- In-place update of the captured cart row.
+			$updated = $wpdb->update( $table, $data, array( 'id' => absint( $existing->id ) ), $format, array( '%d' ) );
 
 			if ( false === $updated ) {
-				wcr_log( 'error', 'Failed to update a cart row.', array( 'cart_id' => absint( $existing_id ) ) );
+				wcr_log( 'error', 'Failed to update a cart row.', array( 'cart_id' => absint( $existing->id ) ) );
 				return 0;
 			}
 
-			return absint( $existing_id );
+			if ( $reactivate ) {
+				wcr_cancel_pending_sends( absint( $existing->id ) );
+			}
+
+			return absint( $existing->id );
 		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- First capture of a new session cart.
