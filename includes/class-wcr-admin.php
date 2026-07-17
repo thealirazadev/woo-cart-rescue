@@ -26,7 +26,22 @@ class WCR_Admin {
 	public function register() {
 		add_action( 'admin_menu', array( $this, 'add_menu' ) );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
 		add_filter( 'option_page_capability_' . self::OPTION_GROUP, array( $this, 'settings_capability' ) );
+	}
+
+	/**
+	 * Enqueues the admin stylesheet on the plugin page only.
+	 *
+	 * @param string $hook Current admin page hook.
+	 * @return void
+	 */
+	public function enqueue_admin_assets( $hook ) {
+		if ( false === strpos( (string) $hook, self::MENU_SLUG ) ) {
+			return;
+		}
+
+		wp_enqueue_style( 'wcr-admin', WCR_URL . 'assets/css/admin.css', array(), WCR_VERSION );
 	}
 
 	/**
@@ -224,7 +239,7 @@ class WCR_Admin {
 	}
 
 	/**
-	 * Renders the settings page.
+	 * Renders the plugin page with Settings and Report tabs.
 	 *
 	 * @return void
 	 */
@@ -232,17 +247,189 @@ class WCR_Admin {
 		if ( ! current_user_can( 'manage_woocommerce' ) ) {
 			return;
 		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selection on a capability-gated admin page.
+		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'settings';
+		$tab = in_array( $tab, array( 'settings', 'report' ), true ) ? $tab : 'settings';
 		?>
-		<div class="wrap">
+		<div class="wrap wcr-admin">
 			<h1><?php esc_html_e( 'Cart Rescue', 'woo-cart-rescue' ); ?></h1>
-			<form action="options.php" method="post">
-				<?php
-				settings_fields( self::OPTION_GROUP );
-				do_settings_sections( self::PAGE_SECTION );
-				submit_button();
-				?>
-			</form>
+			<nav class="nav-tab-wrapper">
+				<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::MENU_SLUG . '&tab=settings' ) ); ?>" class="nav-tab <?php echo 'settings' === $tab ? 'nav-tab-active' : ''; ?>"><?php esc_html_e( 'Settings', 'woo-cart-rescue' ); ?></a>
+				<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::MENU_SLUG . '&tab=report' ) ); ?>" class="nav-tab <?php echo 'report' === $tab ? 'nav-tab-active' : ''; ?>"><?php esc_html_e( 'Report', 'woo-cart-rescue' ); ?></a>
+			</nav>
+			<?php
+			if ( 'report' === $tab ) {
+				$this->render_report_tab();
+			} else {
+				$this->render_settings_tab();
+			}
+			?>
 		</div>
 		<?php
+	}
+
+	/**
+	 * Renders the settings form.
+	 *
+	 * @return void
+	 */
+	protected function render_settings_tab() {
+		?>
+		<form action="options.php" method="post">
+			<?php
+			settings_fields( self::OPTION_GROUP );
+			do_settings_sections( self::PAGE_SECTION );
+			submit_button();
+			?>
+		</form>
+		<?php
+	}
+
+	/**
+	 * Renders the recovery report for a date range.
+	 *
+	 * @return void
+	 */
+	protected function render_report_tab() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only date filter on a capability-gated admin page.
+		$from = isset( $_GET['wcr_from'] ) ? sanitize_text_field( wp_unslash( $_GET['wcr_from'] ) ) : '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only date filter on a capability-gated admin page.
+		$to = isset( $_GET['wcr_to'] ) ? sanitize_text_field( wp_unslash( $_GET['wcr_to'] ) ) : '';
+
+		$from = $this->normalize_date( $from, gmdate( 'Y-m-d', time() - ( 30 * DAY_IN_SECONDS ) ) );
+		$to   = $this->normalize_date( $to, gmdate( 'Y-m-d' ) );
+
+		$data = $this->get_report_data( $from, $to );
+		?>
+		<form method="get" class="wcr-report-filter">
+			<input type="hidden" name="page" value="<?php echo esc_attr( self::MENU_SLUG ); ?>" />
+			<input type="hidden" name="tab" value="report" />
+			<label for="wcr_from"><?php esc_html_e( 'From', 'woo-cart-rescue' ); ?></label>
+			<input type="date" id="wcr_from" name="wcr_from" value="<?php echo esc_attr( $from ); ?>" />
+			<label for="wcr_to"><?php esc_html_e( 'To', 'woo-cart-rescue' ); ?></label>
+			<input type="date" id="wcr_to" name="wcr_to" value="<?php echo esc_attr( $to ); ?>" />
+			<?php submit_button( __( 'Filter', 'woo-cart-rescue' ), 'secondary', '', false ); ?>
+		</form>
+
+		<?php if ( $data['has_data'] ) : ?>
+			<ul class="wcr-stat-cards">
+				<li class="wcr-card">
+					<span class="wcr-card-label"><?php esc_html_e( 'Carts abandoned', 'woo-cart-rescue' ); ?></span>
+					<span class="wcr-card-value"><?php echo esc_html( number_format_i18n( $data['abandoned'] ) ); ?></span>
+				</li>
+				<li class="wcr-card">
+					<span class="wcr-card-label"><?php esc_html_e( 'Emails sent', 'woo-cart-rescue' ); ?></span>
+					<span class="wcr-card-value"><?php echo esc_html( number_format_i18n( $data['sent_total'] ) ); ?></span>
+					<span class="wcr-card-note">
+						<?php
+						printf(
+							/* translators: 1: step 1 count, 2: step 2 count, 3: step 3 count. */
+							esc_html__( 'Step 1: %1$s, Step 2: %2$s, Step 3: %3$s', 'woo-cart-rescue' ),
+							esc_html( number_format_i18n( $data['sent_by_step'][1] ) ),
+							esc_html( number_format_i18n( $data['sent_by_step'][2] ) ),
+							esc_html( number_format_i18n( $data['sent_by_step'][3] ) )
+						);
+						?>
+					</span>
+				</li>
+				<li class="wcr-card">
+					<span class="wcr-card-label"><?php esc_html_e( 'Recovered orders', 'woo-cart-rescue' ); ?></span>
+					<span class="wcr-card-value"><?php echo esc_html( number_format_i18n( $data['recovered'] ) ); ?></span>
+				</li>
+				<li class="wcr-card">
+					<span class="wcr-card-label"><?php esc_html_e( 'Recovered revenue', 'woo-cart-rescue' ); ?></span>
+					<span class="wcr-card-value"><?php echo wp_kses_post( wc_price( $data['revenue'] ) ); ?></span>
+				</li>
+				<li class="wcr-card">
+					<span class="wcr-card-label"><?php esc_html_e( 'Recovery rate', 'woo-cart-rescue' ); ?></span>
+					<span class="wcr-card-value"><?php echo esc_html( $data['rate'] . '%' ); ?></span>
+				</li>
+			</ul>
+			<p class="wcr-report-note"><?php esc_html_e( 'Opens: not tracked.', 'woo-cart-rescue' ); ?></p>
+		<?php else : ?>
+			<p class="wcr-empty"><?php esc_html_e( 'No cart activity in this range yet.', 'woo-cart-rescue' ); ?></p>
+		<?php endif; ?>
+		<?php
+	}
+
+	/**
+	 * Validates a Y-m-d date string, falling back to a default.
+	 *
+	 * @param string $value    Raw date.
+	 * @param string $fallback Default Y-m-d.
+	 * @return string
+	 */
+	protected function normalize_date( $value, $fallback ) {
+		$date = DateTime::createFromFormat( 'Y-m-d', $value );
+
+		if ( $date && $date->format( 'Y-m-d' ) === $value ) {
+			return $value;
+		}
+
+		return $fallback;
+	}
+
+	/**
+	 * Aggregates report figures for a date range.
+	 *
+	 * @param string $from Start date Y-m-d.
+	 * @param string $to   End date Y-m-d.
+	 * @return array
+	 */
+	protected function get_report_data( $from, $to ) {
+		global $wpdb;
+
+		$carts  = wcr_table( 'carts' );
+		$sends  = wcr_table( 'sends' );
+		$events = wcr_table( 'events' );
+
+		$start = $from . ' 00:00:00';
+		$end   = $to . ' 23:59:59';
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted whitelisted table names; values are prepared.
+		$abandoned = (int) $wpdb->get_var(
+			$wpdb->prepare( "SELECT COUNT(*) FROM {$events} WHERE type = 'abandoned' AND created_at BETWEEN %s AND %s", $start, $end )
+		);
+
+		$rows = $wpdb->get_results(
+			$wpdb->prepare( "SELECT step, COUNT(*) AS total FROM {$sends} WHERE status = 'sent' AND sent_at BETWEEN %s AND %s GROUP BY step", $start, $end )
+		);
+
+		$recovered = (int) $wpdb->get_var(
+			$wpdb->prepare( "SELECT COUNT(*) FROM {$carts} WHERE recovered_order_id IS NOT NULL AND recovered_at BETWEEN %s AND %s", $start, $end )
+		);
+
+		$revenue = (float) $wpdb->get_var(
+			$wpdb->prepare( "SELECT COALESCE(SUM(recovered_total),0) FROM {$carts} WHERE recovered_order_id IS NOT NULL AND recovered_at BETWEEN %s AND %s", $start, $end )
+		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		$sent_by_step = array(
+			1 => 0,
+			2 => 0,
+			3 => 0,
+		);
+
+		foreach ( (array) $rows as $row ) {
+			$step = (int) $row->step;
+
+			if ( isset( $sent_by_step[ $step ] ) ) {
+				$sent_by_step[ $step ] = (int) $row->total;
+			}
+		}
+
+		$sent_total = array_sum( $sent_by_step );
+		$rate       = $abandoned > 0 ? round( ( $recovered / $abandoned ) * 100, 1 ) : 0.0;
+
+		return array(
+			'has_data'     => ( $abandoned > 0 || $sent_total > 0 || $recovered > 0 ),
+			'abandoned'    => $abandoned,
+			'sent_total'   => $sent_total,
+			'sent_by_step' => $sent_by_step,
+			'recovered'    => $recovered,
+			'revenue'      => $revenue,
+			'rate'         => $rate,
+		);
 	}
 }
