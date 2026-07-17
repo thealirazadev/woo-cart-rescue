@@ -182,7 +182,19 @@ function wcr_boot_plugin() {
 	$wcr_plugin->register_hooks();
 }
 
+/**
+ * Declares compatibility with WooCommerce High-Performance Order Storage.
+ *
+ * @return void
+ */
+function wcr_declare_hpos_compatibility() {
+	if ( class_exists( '\Automattic\WooCommerce\Utilities\FeaturesUtil' ) ) {
+		\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
+	}
+}
+
 register_activation_hook( __FILE__, 'wcr_activate' );
+add_action( 'before_woocommerce_init', 'wcr_declare_hpos_compatibility' );
 add_action( 'admin_init', 'wcr_maybe_show_activation_notice' );
 add_action( 'plugins_loaded', 'wcr_check_woocommerce', 1 );
 add_action( 'plugins_loaded', 'wcr_boot_plugin', 20 );
