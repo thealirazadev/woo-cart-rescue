@@ -489,6 +489,34 @@ function wcr_get_send( $send_id ) {
 }
 
 /**
+ * Substitutes {tag} placeholders in a template string. Pure.
+ *
+ * Unmatched tags are left untouched. Callers supply already-resolved values,
+ * including any neutral fallback (for example an empty customer name).
+ *
+ * @param string $template Template containing {tag} placeholders.
+ * @param array  $data     Map of tag name (without braces) to replacement value.
+ * @return string
+ */
+function wcr_render_merge_tags( $template, $data ) {
+	$template = (string) $template;
+
+	if ( ! is_array( $data ) || array() === $data ) {
+		return $template;
+	}
+
+	$search  = array();
+	$replace = array();
+
+	foreach ( $data as $key => $value ) {
+		$search[]  = '{' . $key . '}';
+		$replace[] = (string) $value;
+	}
+
+	return str_replace( $search, $replace, $template );
+}
+
+/**
  * Clamps an integer into an inclusive range.
  *
  * @param mixed $value Raw value.
