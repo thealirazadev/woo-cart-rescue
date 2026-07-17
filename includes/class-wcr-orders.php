@@ -43,15 +43,92 @@ class WCR_Orders {
 			return;
 		}
 
-		$cart = $this->find_cart( $order );
+		$recovery = $this->get_recovery_session();
+
+		// Prefer the restored cart for attribution; otherwise match the order.
+		$cart = $recovery ? wcr_get_cart( $recovery['cart_id'] ) : null;
 
 		if ( ! $cart ) {
+			$cart = $this->find_cart( $order );
+		}
+
+		if ( ! $cart ) {
+			$this->clear_recovery_session();
 			return;
 		}
 
-		$this->complete_cart( (int) $cart->id );
+		$in_window = $recovery && (int) $cart->id === (int) $recovery['cart_id'] && time() < (int) $recovery['expires'];
+
+		if ( $in_window ) {
+			$this->mark_recovered( $cart, $order );
+			wcr_log_event( (int) $cart->id, (int) $recovery['send_id'], 'order_recovered', array( 'order_id' => absint( $order_id ) ) );
+		} else {
+			$this->complete_cart( (int) $cart->id );
+			wcr_log_event( (int) $cart->id, null, 'order_completed', array( 'order_id' => absint( $order_id ) ) );
+		}
+
 		wcr_cancel_pending_sends( (int) $cart->id );
-		wcr_log_event( (int) $cart->id, null, 'order_completed', array( 'order_id' => absint( $order_id ) ) );
+		$this->clear_recovery_session();
+	}
+
+	/**
+	 * Reads the restore attribution keys from the WooCommerce session.
+	 *
+	 * @return array|null
+	 */
+	protected function get_recovery_session() {
+		if ( ! function_exists( 'WC' ) || null === WC()->session ) {
+			return null;
+		}
+
+		$cart_id = (int) WC()->session->get( 'wcr_recovery_cart_id' );
+
+		if ( $cart_id <= 0 ) {
+			return null;
+		}
+
+		return array(
+			'cart_id' => $cart_id,
+			'send_id' => (int) WC()->session->get( 'wcr_recovery_send_id' ),
+			'expires' => (int) WC()->session->get( 'wcr_recovery_expires' ),
+		);
+	}
+
+	/**
+	 * Clears the restore attribution keys from the session.
+	 *
+	 * @return void
+	 */
+	protected function clear_recovery_session() {
+		if ( ! function_exists( 'WC' ) || null === WC()->session ) {
+			return;
+		}
+
+		WC()->session->set( 'wcr_recovery_cart_id', null );
+		WC()->session->set( 'wcr_recovery_send_id', null );
+		WC()->session->set( 'wcr_recovery_expires', null );
+	}
+
+	/**
+	 * Marks a cart recovered.
+	 *
+	 * @param object   $cart  Cart row.
+	 * @param WC_Order $order Order object.
+	 * @return void
+	 */
+	protected function mark_recovered( $cart, $order ) {
+		unset( $order );
+
+		global $wpdb;
+
+		$table = wcr_table( 'carts' );
+		$now   = wcr_now();
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted whitelisted table name; values are prepared.
+		$wpdb->query(
+			$wpdb->prepare( "UPDATE {$table} SET status = 'recovered', recovered_at = %s, updated_at = %s WHERE id = %d AND status IN ('active','abandoned')", $now, $now, absint( $cart->id ) )
+		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 	}
 
 	/**
