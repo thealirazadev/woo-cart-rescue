@@ -24,6 +24,39 @@ class WCR_Capture {
 		add_action( 'woocommerce_after_checkout_billing_form', array( $this, 'render_consent_field' ) );
 		add_action( 'wp_ajax_wcr_capture_guest', array( $this, 'handle_guest_capture' ) );
 		add_action( 'wp_ajax_nopriv_wcr_capture_guest', array( $this, 'handle_guest_capture' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_checkout_script' ) );
+	}
+
+	/**
+	 * Enqueues the guest capture script and its nonce on the classic checkout.
+	 *
+	 * @return void
+	 */
+	public function enqueue_checkout_script() {
+		$settings = wcr_get_settings();
+
+		if ( empty( $settings['enabled'] ) ) {
+			return;
+		}
+
+		if ( ! function_exists( 'is_checkout' ) || ! is_checkout() ) {
+			return;
+		}
+
+		if ( function_exists( 'is_wc_endpoint_url' ) && is_wc_endpoint_url( 'order-received' ) ) {
+			return;
+		}
+
+		wp_enqueue_script( 'wcr-checkout-capture', WCR_URL . 'assets/js/checkout-capture.js', array(), WCR_VERSION, true );
+
+		wp_localize_script(
+			'wcr-checkout-capture',
+			'wcrCapture',
+			array(
+				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+				'nonce'   => wp_create_nonce( 'wcr_capture' ),
+			)
+		);
 	}
 
 	/**
