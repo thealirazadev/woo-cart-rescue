@@ -39,9 +39,20 @@ log every non-obvious decision WITH its reason.
   Verification: lint clean, `composer run test` green (21 tests, unit mode). Integration coverage for
   chaining/skips/cross-step cancellation/resume added (runs under wp-env/CI).
 
+- Phase 4 COMPLETE. Order attribution reads restore session keys; an order within the attribution
+  window marks the cart `recovered` with `recovered_order_id`, `recovered_total`, `recovered_at`, and
+  order meta `_wcr_recovered_cart_id`; outside the window (or no restore click) it is `completed`.
+  Attribution window is a bounded setting (0..365). Report tab (Settings/Report nav, manage_woocommerce)
+  with a date-range filter (default last 30 days), stat cards for abandoned / emails sent (per step) /
+  recovered orders / recovered revenue (`wc_price`) / recovery rate, an "Opens: not tracked" note, and
+  an empty state. Report revenue/count query keyed on `recovered_order_id IS NOT NULL` so anonymized
+  recovered carts still count. `get_report_data` made public for testing. Verification: lint clean,
+  `composer run test` green (21 tests, unit mode); attribution-edge and report-query integration tests
+  added.
+
 ## In progress
 
-- Phase 4: attribution and admin report.
+- Phase 5: i18n, uninstall, distribution hardening.
 
 ## Decisions log
 
