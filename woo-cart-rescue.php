@@ -94,6 +94,18 @@ function wcr_activate() {
 		set_transient( 'wcr_activation_blocked', 1, MINUTE_IN_SECONDS );
 		return;
 	}
+
+	$wcr_install_file = WCR_PATH . 'includes/class-wcr-install.php';
+
+	if ( is_readable( $wcr_install_file ) ) {
+		require_once $wcr_install_file;
+	}
+
+	if ( class_exists( 'WCR_Install' ) ) {
+		WCR_Install::activate();
+	} else {
+		wcr_log( 'error', 'The install class was unavailable during activation.' );
+	}
 }
 
 /**

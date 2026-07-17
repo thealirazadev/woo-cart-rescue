@@ -40,9 +40,36 @@ class WCR_Plugin {
 	private function __construct() {}
 
 	/**
-	 * Registers component hooks.
+	 * Loads component classes and registers their hooks.
 	 *
 	 * @return void
 	 */
-	public function register_hooks() {}
+	public function register_hooks() {
+		$this->load_dependencies();
+
+		if ( class_exists( 'WCR_Install' ) ) {
+			WCR_Install::run_migrations();
+		}
+	}
+
+	/**
+	 * Requires the component class files.
+	 *
+	 * @return void
+	 */
+	private function load_dependencies() {
+		$wcr_files = array(
+			'includes/class-wcr-install.php',
+		);
+
+		foreach ( $wcr_files as $wcr_file ) {
+			$wcr_path = WCR_PATH . $wcr_file;
+
+			if ( is_readable( $wcr_path ) ) {
+				require_once $wcr_path;
+			} else {
+				wcr_log( 'error', 'A component class file was unavailable.', array( 'file' => basename( $wcr_path ) ) );
+			}
+		}
+	}
 }
