@@ -119,4 +119,43 @@ class WCR_Test_Orders extends WP_UnitTestCase {
 		$this->assertSame( 'abandoned', wcr_get_cart( $cart_id )->status );
 		$this->assertSame( 'scheduled', wcr_get_send( $send_id )->status );
 	}
+
+	/**
+	 * A later pending step is cancelled when an order is placed.
+	 *
+	 * @return void
+	 */
+	public function test_order_cancels_later_pending_step() {
+		if ( ! function_exists( 'wc_create_order' ) ) {
+			$this->markTestSkipped( 'WooCommerce order helpers unavailable.' );
+		}
+
+		global $wpdb;
+		list( $cart_id ) = $this->seed( 'multi@example.com' );
+
+		// Step 1 already sent; step 3 pending.
+		$wpdb->update( wcr_table( 'sends' ), array( 'status' => 'sent' ), array( 'cart_id' => $cart_id ) );
+		$wpdb->insert(
+			wcr_table( 'sends' ),
+			array(
+				'cart_id'       => $cart_id,
+				'step'          => 3,
+				'status'        => 'scheduled',
+				'scheduled_for' => wcr_now(),
+				'created_at'    => wcr_now(),
+				'updated_at'    => wcr_now(),
+			)
+		);
+
+		$order = wc_create_order();
+		$order->set_billing_email( 'multi@example.com' );
+		$order->save();
+
+		( new WCR_Orders() )->on_order_processed( $order->get_id() );
+
+		$table = wcr_table( 'sends' );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Test assertion against a trusted table.
+		$step_three = $wpdb->get_var( $wpdb->prepare( "SELECT status FROM {$table} WHERE cart_id = %d AND step = %d", $cart_id, 3 ) );
+		$this->assertSame( 'cancelled', $step_three );
+	}
 }

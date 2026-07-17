@@ -186,4 +186,45 @@ class WCR_Test_Abandonment extends WP_UnitTestCase {
 
 		$this->assertSame( 1, $this->count_sends( $cart_id ) );
 	}
+
+	/**
+	 * Resume schedules the first unsent step, not step 1, when step 1 already sent.
+	 *
+	 * @return void
+	 */
+	public function test_resume_schedules_next_unsent_step() {
+		global $wpdb;
+		$cart_id = $this->seed_cart();
+
+		$wpdb->insert(
+			wcr_table( 'sends' ),
+			array(
+				'cart_id'       => $cart_id,
+				'step'          => 1,
+				'status'        => 'sent',
+				'scheduled_for' => wcr_now(),
+				'sent_at'       => wcr_now(),
+				'created_at'    => wcr_now(),
+				'updated_at'    => wcr_now(),
+			)
+		);
+		$wpdb->insert(
+			wcr_table( 'sends' ),
+			array(
+				'cart_id'       => $cart_id,
+				'step'          => 2,
+				'status'        => 'cancelled',
+				'scheduled_for' => wcr_now(),
+				'created_at'    => wcr_now(),
+				'updated_at'    => wcr_now(),
+			)
+		);
+
+		( new WCR_Abandonment() )->sweep();
+
+		$table = wcr_table( 'sends' );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Test assertion against a trusted table.
+		$step_two_status = $wpdb->get_var( $wpdb->prepare( "SELECT status FROM {$table} WHERE cart_id = %d AND step = %d", $cart_id, 2 ) );
+		$this->assertSame( 'scheduled', $step_two_status );
+	}
 }

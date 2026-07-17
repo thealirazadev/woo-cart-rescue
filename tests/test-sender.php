@@ -154,6 +154,54 @@ class WCR_Test_Sender extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Returns a send row for a cart step.
+	 *
+	 * @param int $cart_id Cart id.
+	 * @param int $step    Step number.
+	 * @return object|null
+	 */
+	protected function send_for_step( $cart_id, $step ) {
+		global $wpdb;
+		$table = wcr_table( 'sends' );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Test assertion against a trusted table.
+		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE cart_id = %d AND step = %d", $cart_id, $step ) );
+	}
+
+	/**
+	 * A successful send chains the next enabled step.
+	 *
+	 * @return void
+	 */
+	public function test_successful_send_chains_next_step() {
+		list( $cart_id, $send_id ) = $this->seed( 'abandoned' );
+
+		( new WCR_Sender() )->handle( $send_id );
+
+		$step_two = $this->send_for_step( $cart_id, 2 );
+		$this->assertNotNull( $step_two );
+		$this->assertSame( 'scheduled', $step_two->status );
+	}
+
+	/**
+	 * Chaining skips a disabled step and schedules the next enabled one.
+	 *
+	 * @return void
+	 */
+	public function test_chain_skips_disabled_step() {
+		$settings                        = wcr_default_settings();
+		$settings['steps']               = wcr_step_defaults();
+		$settings['steps'][2]['enabled'] = false;
+		update_option( 'wcr_settings', $settings );
+
+		list( $cart_id, $send_id ) = $this->seed( 'abandoned' );
+
+		( new WCR_Sender() )->handle( $send_id );
+
+		$this->assertNull( $this->send_for_step( $cart_id, 2 ) );
+		$this->assertNotNull( $this->send_for_step( $cart_id, 3 ) );
+	}
+
+	/**
 	 * An opted-out email cancels the send at recheck.
 	 *
 	 * @return void
