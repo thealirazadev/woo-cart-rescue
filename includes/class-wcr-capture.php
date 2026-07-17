@@ -22,6 +22,75 @@ class WCR_Capture {
 	public function register() {
 		add_action( 'woocommerce_cart_updated', array( $this, 'capture_logged_in' ) );
 		add_action( 'woocommerce_after_checkout_billing_form', array( $this, 'render_consent_field' ) );
+		add_action( 'wp_ajax_wcr_capture_guest', array( $this, 'handle_guest_capture' ) );
+		add_action( 'wp_ajax_nopriv_wcr_capture_guest', array( $this, 'handle_guest_capture' ) );
+	}
+
+	/**
+	 * Handles the guest capture AJAX request under the consent gate.
+	 *
+	 * Enforces nonce, email validity, and explicit consent server-side. An
+	 * opted-out email returns the same success body while silently skipping the
+	 * write, so the endpoint never reveals opt-out status.
+	 *
+	 * @return void
+	 */
+	public function handle_guest_capture() {
+		$nonce = isset( $_POST['nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['nonce'] ) ) : '';
+
+		if ( ! wp_verify_nonce( $nonce, 'wcr_capture' ) ) {
+			wcr_log( 'info', 'Guest capture rejected.', array( 'code' => 'invalid_nonce' ) );
+			wp_send_json_error(
+				array(
+					'code'    => 'invalid_nonce',
+					'message' => __( 'Your session has expired. Please refresh the page and try again.', 'woo-cart-rescue' ),
+				),
+				403
+			);
+		}
+
+		$settings = wcr_get_settings();
+
+		if ( empty( $settings['enabled'] ) ) {
+			wp_send_json_error(
+				array(
+					'code'    => 'disabled',
+					'message' => __( 'Cart saving is currently unavailable.', 'woo-cart-rescue' ),
+				),
+				400
+			);
+		}
+
+		$email = isset( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : '';
+
+		if ( ! is_email( $email ) ) {
+			wp_send_json_error(
+				array(
+					'code'    => 'invalid_email',
+					'message' => __( 'Please enter a valid email address.', 'woo-cart-rescue' ),
+				),
+				400
+			);
+		}
+
+		$consent = isset( $_POST['consent'] ) ? sanitize_text_field( wp_unslash( $_POST['consent'] ) ) : '';
+
+		if ( '1' !== $consent ) {
+			wp_send_json_error(
+				array(
+					'code'    => 'consent_required',
+					'message' => __( 'Please tick the consent box to save your cart.', 'woo-cart-rescue' ),
+				),
+				400
+			);
+		}
+
+		// Opted-out addresses get the same success response but no row is written.
+		if ( ! wcr_is_opted_out( $email ) ) {
+			$this->upsert( $email, 0, true );
+		}
+
+		wp_send_json_success( array( 'captured' => true ) );
 	}
 
 	/**
