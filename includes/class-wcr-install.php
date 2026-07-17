@@ -27,6 +27,41 @@ class WCR_Install {
 	public static function activate() {
 		self::run_migrations();
 		self::ensure_token_secret();
+		self::schedule_actions();
+	}
+
+	/**
+	 * Registers the recurring sweep and daily cleanup actions, avoiding duplicates.
+	 *
+	 * @return void
+	 */
+	public static function schedule_actions() {
+		if ( ! function_exists( 'as_schedule_recurring_action' ) ) {
+			wcr_log( 'error', 'Action Scheduler was unavailable while scheduling recurring actions.' );
+			return;
+		}
+
+		self::schedule_recurring( 'wcr_abandonment_sweep', 15 * MINUTE_IN_SECONDS );
+		self::schedule_recurring( 'wcr_retention_cleanup', DAY_IN_SECONDS );
+	}
+
+	/**
+	 * Schedules a single recurring action in the plugin's group when absent.
+	 *
+	 * @param string $hook     Action hook name.
+	 * @param int    $interval Interval in seconds.
+	 * @return void
+	 */
+	private static function schedule_recurring( $hook, $interval ) {
+		if ( false !== as_next_scheduled_action( $hook, array(), 'woo-cart-rescue' ) ) {
+			return;
+		}
+
+		$action_id = as_schedule_recurring_action( time() + $interval, $interval, $hook, array(), 'woo-cart-rescue' );
+
+		if ( ! $action_id ) {
+			wcr_log( 'error', 'Failed to schedule a recurring action.', array( 'hook' => $hook ) );
+		}
 	}
 
 	/**
