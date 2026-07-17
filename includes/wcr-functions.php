@@ -348,6 +348,46 @@ function wcr_enqueue_send( $cart_id, $step, $scheduled_for ) {
 }
 
 /**
+ * Returns the first enabled step that has not yet been sent for a cart.
+ *
+ * Used to resume an interrupted sequence without re-sending a completed step.
+ *
+ * @param int $cart_id Cart row id.
+ * @return int Step number 1..3, or 0 when none remain.
+ */
+function wcr_next_unsent_step( $cart_id ) {
+	global $wpdb;
+
+	$table   = wcr_table( 'sends' );
+	$cart_id = absint( $cart_id );
+
+	if ( '' === $table || 0 === $cart_id ) {
+		return 0;
+	}
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted whitelisted table name; value is prepared.
+	$rows = $wpdb->get_results( $wpdb->prepare( "SELECT step FROM {$table} WHERE cart_id = %d AND status = 'sent'", $cart_id ) );
+
+	$sent = array();
+
+	foreach ( (array) $rows as $row ) {
+		$sent[ (int) $row->step ] = true;
+	}
+
+	for ( $step = 1; $step <= 3; $step++ ) {
+		$config = wcr_get_step_config( $step );
+
+		if ( empty( $config['enabled'] ) || isset( $sent[ $step ] ) ) {
+			continue;
+		}
+
+		return $step;
+	}
+
+	return 0;
+}
+
+/**
  * Cancels every pending send for a cart and unschedules its actions.
  *
  * Targets scheduled and sending rows. The authoritative stop is the send-time

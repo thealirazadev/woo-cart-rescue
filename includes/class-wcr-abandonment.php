@@ -109,26 +109,30 @@ class WCR_Abandonment {
 
 		wcr_log_event( (int) $cart->id, null, 'abandoned' );
 
-		$this->schedule_first_step( (int) $cart->id, $now );
+		$this->schedule_next_step( (int) $cart->id, $now );
 	}
 
 	/**
 	 * Schedules the first enabled, not-yet-sent step from the abandonment time.
 	 *
+	 * On a first abandonment this is step 1; on a resume it is the first step
+	 * that has not already been sent, so a completed step is never repeated.
+	 *
 	 * @param int    $cart_id Cart row id.
 	 * @param string $from    UTC MySQL datetime the delay is measured from.
 	 * @return void
 	 */
-	protected function schedule_first_step( $cart_id, $from ) {
-		$config = wcr_get_step_config( 1 );
+	protected function schedule_next_step( $cart_id, $from ) {
+		$step = wcr_next_unsent_step( $cart_id );
 
-		if ( empty( $config['enabled'] ) ) {
+		if ( 0 === $step ) {
 			return;
 		}
 
+		$config        = wcr_get_step_config( $step );
 		$scheduled_for = gmdate( 'Y-m-d H:i:s', (int) strtotime( $from . ' UTC' ) + ( $config['delay'] * MINUTE_IN_SECONDS ) );
 
-		wcr_enqueue_send( $cart_id, 1, $scheduled_for );
+		wcr_enqueue_send( $cart_id, $step, $scheduled_for );
 	}
 
 	/**
