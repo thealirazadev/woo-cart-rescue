@@ -41,7 +41,92 @@ class WCR_Endpoints {
 
 		if ( 'restore' === $action ) {
 			$this->handle_restore( $token );
+		} elseif ( 'unsubscribe' === $action ) {
+			$this->handle_unsubscribe( $token );
 		}
+	}
+
+	/**
+	 * Validates an unsubscribe token (signature only) and suppresses the sequence.
+	 *
+	 * Idempotent: repeating it changes nothing and shows the same page.
+	 *
+	 * @param string $token Token string.
+	 * @return void
+	 */
+	protected function handle_unsubscribe( $token ) {
+		$result = WCR_Token::validate_unsubscribe( $token );
+
+		if ( ! $result['ok'] ) {
+			wcr_log( 'info', 'Unsubscribe rejected.', array( 'code' => $result['code'] ) );
+			$this->render_unsubscribe_page( false );
+			return;
+		}
+
+		if ( $result['cart'] ) {
+			$this->apply_unsubscribe( $result['cart'] );
+		}
+
+		$this->render_unsubscribe_page( true );
+	}
+
+	/**
+	 * Marks the cart unsubscribed, cancels sends, and records the opt-out hash.
+	 *
+	 * The cart status is set before cancelling sends so an in-flight worker's
+	 * recheck sees the non-abandoned state and stops.
+	 *
+	 * @param object $cart Cart row.
+	 * @return void
+	 */
+	protected function apply_unsubscribe( $cart ) {
+		global $wpdb;
+
+		$carts = wcr_table( 'carts' );
+		$now   = wcr_now();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Status update on a trusted table.
+		$wpdb->update(
+			$carts,
+			array(
+				'status'     => 'unsubscribed',
+				'updated_at' => $now,
+			),
+			array( 'id' => absint( $cart->id ) ),
+			array( '%s', '%s' ),
+			array( '%d' )
+		);
+
+		wcr_cancel_pending_sends( (int) $cart->id );
+
+		if ( ! empty( $cart->email ) ) {
+			$optouts = wcr_table( 'optouts' );
+			$hash    = wcr_email_hash( $cart->email );
+
+			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted whitelisted table name; values are prepared; unique key makes this idempotent.
+			$wpdb->query(
+				$wpdb->prepare( "INSERT IGNORE INTO {$optouts} (email_hash, created_at) VALUES (%s, %s)", $hash, $now )
+			);
+			// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		}
+
+		wcr_log_event( (int) $cart->id, null, 'unsubscribed' );
+	}
+
+	/**
+	 * Renders the standalone unsubscribe confirmation page and exits.
+	 *
+	 * @param bool $valid Whether the token was valid.
+	 * @return void
+	 */
+	protected function render_unsubscribe_page( $valid ) {
+		$wcr_valid = (bool) $valid;
+
+		status_header( 200 );
+		nocache_headers();
+
+		include WCR_PATH . 'templates/unsubscribe-confirmed.php';
+		exit;
 	}
 
 	/**
