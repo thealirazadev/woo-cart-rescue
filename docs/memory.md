@@ -8,10 +8,19 @@ log every non-obvious decision WITH its reason.
 - Toolchain: git repo (local identity Ali Raza), `.gitignore`, `composer.json` (dev deps pinned per
   architecture.md), `composer.lock`, `phpcs.xml.dist`, `phpunit.xml.dist`, `.distignore`,
   `.wp-env.json`. PHPCS 3.13.5 and PHPUnit 9.6.35 confirmed runnable.
+- Phase 1 COMPLETE. Bootstrap + WooCommerce guard + admin notice; `wcr_log` over `wc_get_logger`;
+  versioned migration runner (`wcr_db_version`) + `migrate_1` (four tables via dbDelta); token
+  secret generated non-autoloaded on activation; recurring `wcr_abandonment_sweep` (15 min) and
+  `wcr_retention_cleanup` (daily) registered; logged-in capture on `woocommerce_cart_updated`;
+  consent checkbox on classic checkout; nonce-checked guest capture AJAX with server-side consent
+  gate and silent opt-out skip; activity refresh on checkout load; Settings page (enable, idle
+  window, retention, consent label) with server-side clamping. Verification: `composer run lint`
+  clean (20 files), `composer run test` green (7 tests / unit mode). Integration test
+  `test-capture.php` written to the WP-suite contract, no-ops here.
 
 ## In progress
 
-- Phase 1: foundation, schema, consent-gated capture.
+- Phase 2: abandonment, step-1 email, secure restore, data lifecycle.
 
 ## Decisions log
 
@@ -33,3 +42,17 @@ log every non-obvious decision WITH its reason.
   in `wcr-functions.php` (not inside the `WC_Email` subclass or the Settings API callback) so the
   unit suite can exercise them without loading WooCommerce. Rule-of-three not triggered; this is to
   make the documented "pure PHP, no WordPress load" unit tests real.
+- Default `enabled = true` (open question; PRD success criteria assume capture is active out of the
+  box and the manual checklist adds items without a config step). Logged here per the "documented
+  defaults" instruction. Idle window default 60 min (PRD), retention default 30 days.
+- WPCS flags the mandated 3-char `wcr`/`WCR` prefix as "too short" (ShortPrefixPassed). The prefix
+  is binding (docs/rules.md), so that one sub-sniff is excluded in `phpcs.xml.dist`; the prefix
+  requirement itself is still enforced.
+- Commit-order note: the `wcr_log` helper (phases.md commit 3) was committed before the WooCommerce
+  activation block (commit 2) because the block logs through `wcr_log`; committing the block first
+  would reference an undefined function. Only these two adjacent Phase-1 commits were reordered.
+- Owner instruction mid-run: make small granular commits (each migration/helper/endpoint/test its
+  own commit). Applied from the migration runner onward.
+- Added test files beyond the proposed tree: `tests/test-settings.php` (pure unit for settings
+  clamping). The architecture file tree is "proposed"; testing.md explicitly mandates settings and
+  merge-tag unit tests, so dedicated files are added as needed and kept one-class-per-file.
