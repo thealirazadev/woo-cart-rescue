@@ -52,10 +52,66 @@ function wcr_log( $level, $message, $context = array() ) {
  */
 function wcr_default_settings() {
 	return array(
-		'enabled'        => true,
-		'idle_window'    => 60,
-		'retention_days' => 30,
-		'consent_label'  => __( 'Email me a reminder if I do not finish checking out.', 'woo-cart-rescue' ),
+		'enabled'          => true,
+		'idle_window'      => 60,
+		'retention_days'   => 30,
+		'token_ttl_days'   => 7,
+		'attribution_days' => 7,
+		'consent_label'    => __( 'Email me a reminder if I do not finish checking out.', 'woo-cart-rescue' ),
+	);
+}
+
+/**
+ * Returns the built-in per-step enable/delay defaults.
+ *
+ * Delays are in minutes: step 1 from abandonment, steps 2 and 3 from the
+ * previous send.
+ *
+ * @return array
+ */
+function wcr_step_defaults() {
+	return array(
+		1 => array(
+			'enabled' => true,
+			'delay'   => 60,
+		),
+		2 => array(
+			'enabled' => true,
+			'delay'   => 1440,
+		),
+		3 => array(
+			'enabled' => true,
+			'delay'   => 4320,
+		),
+	);
+}
+
+/**
+ * Resolves the enable flag and delay for a step from settings over defaults.
+ *
+ * @param int $step Step number 1..3.
+ * @return array{enabled:bool,delay:int}
+ */
+function wcr_get_step_config( $step ) {
+	$step     = (int) $step;
+	$defaults = wcr_step_defaults();
+
+	if ( ! isset( $defaults[ $step ] ) ) {
+		return array(
+			'enabled' => false,
+			'delay'   => 0,
+		);
+	}
+
+	$settings = wcr_get_settings();
+	$stored   = ( isset( $settings['steps'][ $step ] ) && is_array( $settings['steps'][ $step ] ) ) ? $settings['steps'][ $step ] : array();
+
+	$enabled = isset( $stored['enabled'] ) ? (bool) $stored['enabled'] : $defaults[ $step ]['enabled'];
+	$delay   = isset( $stored['delay'] ) ? wcr_clamp( $stored['delay'], 1, 43200 ) : $defaults[ $step ]['delay'];
+
+	return array(
+		'enabled' => $enabled,
+		'delay'   => (int) $delay,
 	);
 }
 
