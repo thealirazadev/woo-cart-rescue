@@ -33,20 +33,148 @@ if ( ! is_readable( $wcr_functions_file ) ) {
 require_once $wcr_functions_file;
 
 /**
+ * Checks whether WooCommerce is loaded in the current request.
+ *
+ * @return bool
+ */
+function wcr_has_woocommerce() {
+	return class_exists( 'WooCommerce' ) || defined( 'WC_VERSION' );
+}
+
+/**
+ * Checks whether WooCommerce is in an active plugin list.
+ *
+ * @return bool
+ */
+function wcr_has_active_woocommerce() {
+	$active_plugins = get_option( 'active_plugins', array() );
+
+	if ( ! is_array( $active_plugins ) ) {
+		$active_plugins = array();
+	}
+
+	if ( in_array( 'woocommerce/woocommerce.php', $active_plugins, true ) ) {
+		return true;
+	}
+
+	if ( ! is_multisite() ) {
+		return false;
+	}
+
+	$network_plugins = get_site_option( 'active_sitewide_plugins', array() );
+
+	if ( ! is_array( $network_plugins ) ) {
+		return false;
+	}
+
+	return isset( $network_plugins['woocommerce/woocommerce.php'] );
+}
+
+/**
+ * Prevents activation when WooCommerce is unavailable.
+ *
+ * @return void
+ */
+function wcr_activate() {
+	if ( ! wcr_has_active_woocommerce() ) {
+		wcr_log( 'error', 'Activation was rejected because WooCommerce was unavailable.' );
+
+		if ( ! function_exists( 'deactivate_plugins' ) ) {
+			$wcr_plugin_functions = ABSPATH . 'wp-admin/includes/plugin.php';
+
+			if ( is_readable( $wcr_plugin_functions ) ) {
+				require_once $wcr_plugin_functions;
+			}
+		}
+
+		if ( function_exists( 'deactivate_plugins' ) ) {
+			deactivate_plugins( plugin_basename( __FILE__ ), true );
+		}
+
+		set_transient( 'wcr_activation_blocked', 1, MINUTE_IN_SECONDS );
+		return;
+	}
+
+	$wcr_install_file = WCR_PATH . 'includes/class-wcr-install.php';
+
+	if ( is_readable( $wcr_install_file ) ) {
+		require_once $wcr_install_file;
+	}
+
+	if ( class_exists( 'WCR_Install' ) ) {
+		WCR_Install::activate();
+	} else {
+		wcr_log( 'error', 'The install class was unavailable during activation.' );
+	}
+}
+
+/**
+ * Shows the dependency notice after a blocked activation and clears it once.
+ *
+ * @return void
+ */
+function wcr_maybe_show_activation_notice() {
+	if ( ! get_transient( 'wcr_activation_blocked' ) ) {
+		return;
+	}
+
+	delete_transient( 'wcr_activation_blocked' );
+	add_action( 'admin_notices', 'wcr_render_dependency_notice' );
+}
+
+/**
+ * Warns when WooCommerce is missing at bootstrap so the plugin no-ops instead of fataling.
+ *
+ * @return void
+ */
+function wcr_check_woocommerce() {
+	if ( wcr_has_woocommerce() ) {
+		return;
+	}
+
+	wcr_log( 'error', 'WooCommerce was unavailable during plugin bootstrap.' );
+	add_action( 'admin_notices', 'wcr_render_dependency_notice' );
+}
+
+/**
+ * Renders the WooCommerce dependency notice.
+ *
+ * @return void
+ */
+function wcr_render_dependency_notice() {
+	if ( ! current_user_can( 'activate_plugins' ) ) {
+		return;
+	}
+	?>
+	<div class="notice notice-error">
+		<p>
+			<?php esc_html_e( 'WooCommerce Cart Rescue requires WooCommerce to be installed and active.', 'woo-cart-rescue' ); ?>
+		</p>
+	</div>
+	<?php
+}
+
+/**
  * Loads and starts plugin components once WooCommerce is available.
  *
  * @return void
  */
 function wcr_boot_plugin() {
+	if ( ! wcr_has_woocommerce() ) {
+		return;
+	}
+
 	$wcr_plugin_file = WCR_PATH . 'includes/class-wcr-plugin.php';
 
 	if ( ! is_readable( $wcr_plugin_file ) ) {
+		wcr_log( 'error', 'The orchestrator class file was unavailable.' );
 		return;
 	}
 
 	require_once $wcr_plugin_file;
 
 	if ( ! class_exists( 'WCR_Plugin' ) ) {
+		wcr_log( 'error', 'The orchestrator class could not be loaded.' );
 		return;
 	}
 
@@ -54,4 +182,20 @@ function wcr_boot_plugin() {
 	$wcr_plugin->register_hooks();
 }
 
+/**
+ * Declares compatibility with WooCommerce High-Performance Order Storage.
+ *
+ * @return void
+ */
+function wcr_declare_hpos_compatibility() {
+	if ( class_exists( '\Automattic\WooCommerce\Utilities\FeaturesUtil' ) ) {
+		\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
+	}
+}
+
+register_activation_hook( __FILE__, 'wcr_activate' );
+add_action( 'before_woocommerce_init', 'wcr_declare_hpos_compatibility' );
+add_action( 'admin_init', 'wcr_maybe_show_activation_notice' );
+add_action( 'init', 'wcr_load_textdomain' );
+add_action( 'plugins_loaded', 'wcr_check_woocommerce', 1 );
 add_action( 'plugins_loaded', 'wcr_boot_plugin', 20 );

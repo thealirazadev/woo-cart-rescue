@@ -1,1 +1,63 @@
 /* Report and settings layout tweaks for woo-cart-rescue. */
+
+.wcr-report-filter {
+	margin: 16px 0 24px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.wcr-stat-cards {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+	gap: 16px;
+}
+
+.wcr-card {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 16px;
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.wcr-card-label {
+	font-size: 13px;
+	text-transform: uppercase;
+	letter-spacing: 0.02em;
+	color: #646970;
+}
+
+.wcr-card-value {
+	font-size: 28px;
+	font-weight: 600;
+	line-height: 1.2;
+	color: #1d2327;
+}
+
+.wcr-card-note {
+	font-size: 12px;
+	color: #646970;
+}
+
+.wcr-report-note {
+	margin-top: 24px;
+	color: #646970;
+}
+
+.wcr-empty {
+	margin-top: 24px;
+	padding: 24px;
+	text-align: center;
+	color: #646970;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+}
