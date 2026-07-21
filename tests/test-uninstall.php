@@ -18,11 +18,28 @@ if ( ! class_exists( 'WP_UnitTestCase' ) ) {
 class WCR_Test_Uninstall extends WP_UnitTestCase {
 
 	/**
+	 * Lets the uninstall routine reach the real tables.
+	 *
+	 * The plugin's tables are created for real when the bootstrap loads the plugin, before the
+	 * test case installs its query filters. Those filters rewrite CREATE/DROP TABLE into their
+	 * TEMPORARY forms, so without removing them the uninstall would drop a temporary table that
+	 * never existed and this test would assert nothing.
+	 *
+	 * @return void
+	 */
+	public function set_up() {
+		parent::set_up();
+		remove_filter( 'query', array( $this, '_create_temporary_tables' ) );
+		remove_filter( 'query', array( $this, '_drop_temporary_tables' ) );
+	}
+
+	/**
 	 * Recreates the schema so later tests still have their tables.
 	 *
 	 * @return void
 	 */
 	public function tear_down() {
+		delete_option( 'wcr_db_version' );
 		WCR_Install::run_migrations();
 		parent::tear_down();
 	}
