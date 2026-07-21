@@ -69,6 +69,22 @@ log every non-obvious decision WITH its reason.
   docs/launch-checklist.md (real mailer deliverability, live restore/unsubscribe click-through,
   staging retention/HPOS/export-erase runs, zip build inspection).
 
+## Repo hygiene (post-release)
+
+- `LICENSE` added at the repo root: MIT, "Copyright (c) 2026 Ali Raza", matching the `license`
+  field already declared in `composer.json` and the plugin header.
+- `.github/workflows/ci.yml` added: GitHub Actions on push and pull_request to `main`. One job on
+  `ubuntu-latest` with PHP 8.2 (`shivammathur/setup-php@v2`, no coverage) running the same gates
+  documented in docs/testing.md — `composer install`, `composer run lint` (PHPCS, 29 files),
+  `php -l` over every non-vendor PHP file, and `composer run test` (PHPUnit, 21 tests /
+  45 assertions). First run on `main` was green.
+- Scoped out of CI deliberately: wp-env/Docker (no WordPress core download on the runner, and the
+  local wp-env blocker above still applies), so PHPUnit runs in unit mode there; the WP/WooCommerce
+  and Action Scheduler integration classes self-skip via the `WP_UnitTestCase` guard in
+  `tests/bootstrap.php` and still need a WP-capable host. Also out: `composer run build`
+  (needs wp-cli dist-archive) and the manual QA in docs/launch-checklist.md. No source or test file
+  was changed to make CI pass, and no dependency was added.
+
 ## Decisions log
 
 - wp-env unavailable in this environment: Docker daemon is up, but both genuine `npx wp-env start`
