@@ -184,7 +184,20 @@ class WCR_Test_Abandonment extends WP_UnitTestCase {
 
 		( new WCR_Abandonment() )->sweep();
 
-		$this->assertSame( 1, $this->count_sends( $cart_id ) );
+		$table = wcr_table( 'sends' );
+
+		// Step 1 keeps its single sent row: the resume must not queue it again. The sweep does add
+		// a row, but for step 2, which is the documented resume behaviour (docs/PRD.md).
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Test assertion against a trusted table.
+		$step_one = $wpdb->get_results( $wpdb->prepare( "SELECT status FROM {$table} WHERE cart_id = %d AND step = 1", $cart_id ) );
+
+		$this->assertCount( 1, $step_one );
+		$this->assertSame( 'sent', $step_one[0]->status );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Test assertion against a trusted table.
+		$scheduled = $wpdb->get_col( $wpdb->prepare( "SELECT step FROM {$table} WHERE cart_id = %d AND status = 'scheduled'", $cart_id ) );
+
+		$this->assertSame( array( '2' ), array_map( 'strval', $scheduled ) );
 	}
 
 	/**
