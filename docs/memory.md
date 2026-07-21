@@ -60,6 +60,29 @@ log every non-obvious decision WITH its reason.
   (21 tests, unit mode), all PHP files `php -l` clean, and a stubbed boot smoke-test loads all 11
   classes, wires 18 hooks, and registers the 3 recovery emails with no fatal.
 
+## Senior quality pass (2026-07-22)
+
+- Security code review of the ten focus areas (token HMAC/expiry/tamper/hashed-at-rest, single-use
+  atomic claim, send-time recheck, per-step duplicate protection, consent gate, GDPR
+  purge/anonymize + exporter/eraser, unsubscribe propagation, no-opt-out-oracle, email/report
+  escaping, prepared SQL). Conclusion: all areas SOUND, no real defects found. Evidence in the
+  final report; no code changed and no fix/test churn manufactured, per the honest-review rule.
+  Two minor non-defect observations logged only: (1) `WCR_Capture::capture_logged_in()` does not
+  consult `wcr_is_opted_out()` before writing the row, but the sweep and send-time recheck both
+  enforce opt-out so no email is ever sent to a suppressed address (unsubscribe IS honored);
+  (2) the privacy exporter returns status/total/timestamps but not `cart_contents`. Neither is a
+  security defect; left unchanged to avoid unrequested behavior/scope change.
+- README senior signals: CI-status and MIT license badges at the top; a "Design decisions" section
+  sourced from docs/architecture.md and docs/memory.md (consent-gated guest capture, no
+  open/click pixels, custom tables over postmeta, hashed-email opt-out surviving anonymization,
+  Action Scheduler for all timing, restore-click reset to active, token security + race safety).
+- Benchmark (priority 3) intentionally SKIPPED: no WordPress runtime here (wp-env blocked, same as
+  the build-time blocker), and every timing/throughput path needs WP + WooCommerce + Action
+  Scheduler, so nothing could be measured honestly. Stated rather than fabricated.
+- Hygiene: `SECURITY.md` (supported versions, private vulnerability reporting via GitHub advisories,
+  scope) and `.github/dependabot.yml` (monthly, grouped, composer + github-actions). No dependency
+  added. Gates re-run green: PHPCS clean (29 files), PHPUnit 21 tests / 45 assertions.
+
 ## Build status: v1.0.0 complete
 
 - All five phases implemented and committed one-feature-per-commit. Automated gates pass in this
