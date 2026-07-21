@@ -104,11 +104,50 @@ log every non-obvious decision WITH its reason.
 - Scoped out of CI deliberately: wp-env/Docker (no WordPress core download on the runner, and the
   local wp-env blocker above still applies), so PHPUnit runs in unit mode there; the WP/WooCommerce
   and Action Scheduler integration classes self-skip via the `WP_UnitTestCase` guard in
-  `tests/bootstrap.php` and still need a WP-capable host. Also out: `composer run build`
+  `tests/bootstrap.php` and still need a WP-capable host. SUPERSEDED 2026-07-22: that was wrong. The
+  integration tests never needed wp-env, only a WordPress core checkout, the core test library from
+  `wordpress-develop`, and a database — all of which a hosted runner can install in under a minute.
+  CI now runs them. Also out: `composer run build`
   (needs wp-cli dist-archive) and the manual QA in docs/launch-checklist.md. No source or test file
   was changed to make CI pass, and no dependency was added.
 
+## Integration suite unlocked (2026-07-22)
+
+- The integration tests were executed for the first time, against real WordPress 6.8.2 +
+  WooCommerce 10.6.2 + Action Scheduler. Before: 21 tests executed (45 assertions), with eight test
+  files no-op'ing entirely because `WP_UnitTestCase` was absent. After: 57 tests executed, 0
+  skipped, 135 assertions, green and repeatable. Three test defects were found and fixed; no
+  production code changed, because none of the failures was a code bug:
+  1. `WCR_Test_Abandonment::test_resume_does_not_resend_sent_step_one` asserted the cart still had
+     exactly one send row. Wrong expectation: docs/PRD.md says a resume schedules the first unsent
+     step, so with step 1 already sent the sweep correctly adds a step-2 row and the count is 2.
+     Rewritten to assert what its name claims — step 1 keeps its single `sent` row, and the only
+     newly scheduled step is 2.
+  2. `WCR_Test_Uninstall` asserted the tables were gone but they never were. The plugin's tables are
+     created for real while the bootstrap loads the plugin, before `WP_UnitTestCase` installs the
+     query filters that rewrite CREATE/DROP TABLE into their TEMPORARY forms, so `uninstall.php`
+     dropped a temporary table that never existed. The case now removes those two filters and
+     recreates the schema in `tear_down`.
+  3. Both cart-capture tests skipped on `WC_Helper_Product`, which ships only with WooCommerce's own
+     test framework and never with a released WooCommerce package — a permanent skip. The fixture
+     now builds a simple product through the public CRUD API, and the seeding is asserted instead of
+     skipped.
+- CI gained an `integration-tests` job (mariadb service + WordPress core + core test library +
+  WooCommerce) that runs the whole suite; `checks` still runs it in unit mode so the stub path stays
+  covered. docs/testing.md documents the provisioning commands.
+
 ## Decisions log
+
+- 2026-07-22 - WordPress 6.8.2 + WooCommerce 10.6.2 are pinned for the integration suite (CI and
+  docs). 10.6.2 is the newest WooCommerce that still declares "Requires at least: 6.8"; 10.8+
+  requires WordPress 6.9. Pinning both keeps a WooCommerce release from turning CI red on its own
+  schedule.
+- 2026-07-22 - CI provisions the test suite from tarballs (wordpress.org + the wordpress-develop tag
+  archive) rather than `bin/install-wp-tests.sh`, which needs `svn` and a `mysqladmin` client that
+  the runner image does not guarantee. The script stays for anyone who has both.
+- 2026-07-22 - Test fixtures must not use WooCommerce's `WC_Helper_*` classes. They live in
+  WooCommerce's test framework, which is stripped from the released plugin package, so any test
+  that depends on them can only ever skip.
 
 - wp-env unavailable in this environment: Docker daemon is up, but both genuine `npx wp-env start`
   attempts failed with network `ETIMEDOUT` fetching WordPress core from wordpress.org (throughput
