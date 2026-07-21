@@ -1,5 +1,8 @@
 # woo-cart-rescue
 
+[![CI](https://github.com/thealirazadev/woo-cart-rescue/actions/workflows/ci.yml/badge.svg)](https://github.com/thealirazadev/woo-cart-rescue/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/license/mit/)
+
 A WooCommerce plugin that recovers abandoned carts. It tracks carts for logged-in customers and for
 guests who give explicit consent at checkout, detects abandonment after a configurable idle window,
 sends a scheduled recovery email sequence with signed restore links that rebuild the cart, and
@@ -44,3 +47,4 @@ The test suite runs in two modes. With the WordPress test suite installed (via
 `bin/install-wp-tests.sh` or `wp-env`), the full integration tests run against WordPress and
 WooCommerce. Without it, a unit subset (token signing, settings sanitization, merge-tag rendering)
 runs with lightweight stubs; the integration test files no-op so the command still passes.
+
