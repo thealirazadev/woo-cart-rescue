@@ -39,21 +39,23 @@ class WCR_Test_Capture extends WP_Ajax_UnitTestCase {
 		WC()->cart = new WC_Cart();
 		WC()->cart->empty_cart();
 
-		if ( class_exists( 'WC_Helper_Product' ) ) {
-			$this->product = WC_Helper_Product::create_simple_product();
-		}
+		// Built from the public CRUD API rather than WC_Helper_Product: that helper ships with
+		// WooCommerce's own test framework, which a released WooCommerce package does not include.
+		$product = new WC_Product_Simple();
+		$product->set_name( 'Cart Rescue Test Product' );
+		$product->set_regular_price( '10.00' );
+		$product->set_status( 'publish' );
+		$product->save();
+
+		$this->product = $product;
 	}
 
 	/**
-	 * Adds the test product to the cart, skipping when helpers are unavailable.
+	 * Adds the test product to the cart.
 	 *
-	 * @return bool
+	 * @return bool True when the cart holds at least one line.
 	 */
 	protected function seed_cart() {
-		if ( ! $this->product ) {
-			return false;
-		}
-
 		WC()->cart->add_to_cart( $this->product->get_id(), 2 );
 		return ! WC()->cart->is_empty();
 	}
@@ -125,9 +127,7 @@ class WCR_Test_Capture extends WP_Ajax_UnitTestCase {
 	 * @return void
 	 */
 	public function test_consenting_guest_is_captured_once() {
-		if ( ! $this->seed_cart() ) {
-			$this->markTestSkipped( 'WooCommerce product helpers unavailable.' );
-		}
+		$this->assertTrue( $this->seed_cart(), 'The test product could not be added to the cart.' );
 
 		$capture = new WCR_Capture();
 		$cart_id = $capture->upsert( 'guest@example.com', 0, true );
@@ -156,9 +156,7 @@ class WCR_Test_Capture extends WP_Ajax_UnitTestCase {
 	 * @return void
 	 */
 	public function test_opted_out_guest_is_silently_skipped() {
-		if ( ! $this->seed_cart() ) {
-			$this->markTestSkipped( 'WooCommerce product helpers unavailable.' );
-		}
+		$this->assertTrue( $this->seed_cart(), 'The test product could not be added to the cart.' );
 
 		global $wpdb;
 		$wpdb->insert(
