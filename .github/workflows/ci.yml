@@ -1,0 +1,47 @@
+# Runs the same checks the project runs locally (see docs/testing.md):
+# composer run lint, a php -l syntax pass, and composer run test.
+#
+# PHPUnit runs here in unit mode: the token, consent/settings, and merge-tag
+# tests execute for real, while the WordPress, WooCommerce, and Action
+# Scheduler integration tests self-skip because no WordPress test suite is
+# present on the runner. Those run in full under `npx wp-env start` or any
+# WP-capable host that provides WP_TESTS_DIR.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Lint and tests (PHP 8.2)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Lint with PHPCS
+        run: composer run lint
+
+      - name: Check PHP syntax
+        run: find . -path ./vendor -prune -o -name '*.php' -print0 | xargs -0 -n1 -P4 php -l
+
+      - name: Run PHPUnit
+        run: composer run test
