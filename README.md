@@ -43,10 +43,11 @@ composer run lint        # PHPCS against phpcs.xml.dist (WordPress Coding Standa
 composer run test        # PHPUnit
 ```
 
-The test suite runs in two modes. With the WordPress test suite installed (via
-`bin/install-wp-tests.sh` or `wp-env`), the full integration tests run against WordPress and
-WooCommerce. Without it, a unit subset (token signing, settings sanitization, merge-tag rendering)
-runs with lightweight stubs; the integration test files no-op so the command still passes.
+The test suite runs in two modes. With `WP_TESTS_DIR` pointing at a WordPress core test library the
+full integration tests run against real WordPress, WooCommerce, and Action Scheduler; CI runs them
+on every push, and `docs/testing.md` has the exact provisioning commands (`wp-env` works too but is
+not required). Without it, a unit subset (token signing, settings sanitization, merge-tag rendering)
+runs with lightweight stubs and the integration test files no-op so the command still passes.
 
 ## Design decisions
 
