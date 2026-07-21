@@ -23,20 +23,72 @@
 
 ## Environment and commands
 
-Local WordPress + WooCommerce runs under `@wordpress/env` (Docker). Outbound mail in the dev site
-goes to a local mail catcher (Mailpit) or a mail-logging dev plugin — dev environment only, never
-a dependency of the shipped plugin.
+Outbound mail in the dev site goes to a local mail catcher (Mailpit) or a mail-logging dev
+plugin — dev environment only, never a dependency of the shipped plugin.
 
 ```
 composer install          # dev tooling (exact-pinned, lockfile committed)
-npx wp-env start          # local WP + WooCommerce
 composer run lint         # PHPCS against phpcs.xml.dist
 composer run lint:fix     # PHPCBF autofixes
-composer run test         # PHPUnit (unit + WP integration suites)
+composer run test         # PHPUnit (unit mode, or integration mode when WP_TESTS_DIR is set)
 ```
 
-`composer run test` must configure the WP test suite via `tests/bootstrap.php`; a `--filter` pass
-on the current test class is fine during development, but the full suite runs before any commit.
+`tests/bootstrap.php` picks the mode: with no `WP_TESTS_DIR` (or nothing installed there) it loads
+stubs and only the pure-PHP tests run, because every integration class early-returns when
+`WP_UnitTestCase` is absent. Point `WP_TESTS_DIR` at a WordPress core test library and the whole
+suite runs. A `--filter` pass on the current test class is fine during development, but the full
+suite runs before any commit.
+
+## Provisioning the WordPress test environment
+
+`@wordpress/env` provisions this, but it is not required and nothing in the suite depends on it.
+The suite needs exactly three things — a WordPress core checkout, the WordPress core test library,
+and a MySQL/MariaDB server — and they can be installed directly, which is what CI does:
+
+```bash
+WP_VERSION=6.8.2
+WC_VERSION=10.6.2
+export WP_TESTS_DIR=/tmp/wordpress-tests-lib
+export WCR_TESTS_WOOCOMMERCE=/tmp/woocommerce/woocommerce/woocommerce.php
+
+# 1. A database. Any MySQL/MariaDB reachable over TCP will do, for example:
+docker run -d --name wcr-test-db -e MARIADB_ROOT_PASSWORD=password -p 3306:3306 mariadb:11.4
+docker exec wcr-test-db mariadb -uroot -ppassword -e 'CREATE DATABASE wordpress_test'
+
+# 2. WordPress core (what ABSPATH points at).
+curl -sSL "https://wordpress.org/wordpress-${WP_VERSION}.tar.gz" -o /tmp/wordpress.tar.gz
+mkdir -p /tmp/wordpress && tar --strip-components=1 -xzf /tmp/wordpress.tar.gz -C /tmp/wordpress
+
+# 3. The core test library (includes/ + data/ + a config), from wordpress-develop.
+curl -sSL "https://github.com/WordPress/wordpress-develop/archive/refs/tags/${WP_VERSION}.tar.gz" \
+  -o /tmp/wordpress-develop.tar.gz
+tar -xzf /tmp/wordpress-develop.tar.gz -C /tmp
+mkdir -p "$WP_TESTS_DIR"
+cp -r "/tmp/wordpress-develop-${WP_VERSION}/tests/phpunit/includes" "$WP_TESTS_DIR/includes"
+cp -r "/tmp/wordpress-develop-${WP_VERSION}/tests/phpunit/data" "$WP_TESTS_DIR/data"
+cp "/tmp/wordpress-develop-${WP_VERSION}/wp-tests-config-sample.php" "$WP_TESTS_DIR/wp-tests-config.php"
+sed -i "s#dirname( __FILE__ ) . '/src/'#'/tmp/wordpress/'#; s#__DIR__ . '/src/'#'/tmp/wordpress/'#" \
+  "$WP_TESTS_DIR/wp-tests-config.php"
+sed -i "s/youremptytestdbnamehere/wordpress_test/; s/yourusernamehere/root/; \
+  s/yourpasswordhere/password/; s/localhost/127.0.0.1/" "$WP_TESTS_DIR/wp-tests-config.php"
+
+# 4. WooCommerce (which bundles Action Scheduler).
+curl -sSL "https://downloads.wordpress.org/plugin/woocommerce.${WC_VERSION}.zip" -o /tmp/woocommerce.zip
+unzip -q /tmp/woocommerce.zip -d /tmp/woocommerce
+
+# 5. Run everything.
+composer run test
+```
+
+Notes:
+
+- `WCR_TESTS_WOOCOMMERCE` is the path to `woocommerce.php` itself, not to its directory. Without it
+  the bootstrap looks in `/tmp/wordpress/wp-content/plugins/woocommerce/woocommerce.php`.
+- The pinned pair is WordPress 6.8.2 with WooCommerce 10.6.2, the newest WooCommerce that still
+  declares support for WordPress 6.8. CI pins the same pair so a local failure is reproducible.
+- Fixtures use the public WooCommerce CRUD API, never `WC_Helper_*`: those helpers live in
+  WooCommerce's own test framework, which released WooCommerce packages do not ship.
+- The database is dropped and recreated by the test suite on each run; never point it at real data.
 
 Useful manual levers while testing timing: set the idle window and step delays to 1-2 minutes in
 settings, and run due actions immediately from Tools > Scheduled Actions instead of waiting.
