@@ -1,11 +1,11 @@
 # Runs the same checks the project runs locally (see docs/testing.md):
 # composer run lint, a php -l syntax pass, and composer run test.
 #
-# PHPUnit runs here in unit mode: the token, consent/settings, and merge-tag
-# tests execute for real, while the WordPress, WooCommerce, and Action
-# Scheduler integration tests self-skip because no WordPress test suite is
-# present on the runner. Those run in full under `npx wp-env start` or any
-# WP-capable host that provides WP_TESTS_DIR.
+# Two test jobs. `checks` runs PHPUnit in unit mode, where the token,
+# consent/settings, and merge-tag tests execute against stubs and the
+# integration classes are skipped, which keeps the no-database path covered.
+# `integration-tests` provisions WordPress, the core test library, WooCommerce,
+# and a database, and runs the whole suite for real.
 
 name: CI
 
@@ -44,4 +44,67 @@ jobs:
         run: find . -path ./vendor -prune -o -name '*.php' -print0 | xargs -0 -n1 -P4 php -l
 
       - name: Run PHPUnit
+        run: composer run test
+
+  integration-tests:
+    name: Integration tests (WordPress + WooCommerce)
+    runs-on: ubuntu-latest
+
+    services:
+      database:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: password
+          MARIADB_DATABASE: wordpress_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      WP_VERSION: 6.8.2
+      WC_VERSION: 10.6.2
+      WP_TESTS_DIR: /tmp/wordpress-tests-lib
+      WCR_TESTS_WOOCOMMERCE: /tmp/woocommerce/woocommerce/woocommerce.php
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v5
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mysqli
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Install WordPress and the core test suite
+        run: |
+          set -euo pipefail
+          curl -sSL "https://wordpress.org/wordpress-${WP_VERSION}.tar.gz" -o /tmp/wordpress.tar.gz
+          mkdir -p /tmp/wordpress
+          tar --strip-components=1 -xzf /tmp/wordpress.tar.gz -C /tmp/wordpress
+          curl -sSL "https://github.com/WordPress/wordpress-develop/archive/refs/tags/${WP_VERSION}.tar.gz" -o /tmp/wordpress-develop.tar.gz
+          tar -xzf /tmp/wordpress-develop.tar.gz -C /tmp
+          mkdir -p "$WP_TESTS_DIR"
+          cp -r "/tmp/wordpress-develop-${WP_VERSION}/tests/phpunit/includes" "$WP_TESTS_DIR/includes"
+          cp -r "/tmp/wordpress-develop-${WP_VERSION}/tests/phpunit/data" "$WP_TESTS_DIR/data"
+          cp "/tmp/wordpress-develop-${WP_VERSION}/wp-tests-config-sample.php" "$WP_TESTS_DIR/wp-tests-config.php"
+          sed -i "s#dirname( __FILE__ ) . '/src/'#'/tmp/wordpress/'#; s#__DIR__ . '/src/'#'/tmp/wordpress/'#" "$WP_TESTS_DIR/wp-tests-config.php"
+          sed -i "s/youremptytestdbnamehere/wordpress_test/; s/yourusernamehere/root/; s/yourpasswordhere/password/; s/localhost/127.0.0.1/" "$WP_TESTS_DIR/wp-tests-config.php"
+
+      - name: Install WooCommerce
+        run: |
+          set -euo pipefail
+          curl -sSL "https://downloads.wordpress.org/plugin/woocommerce.${WC_VERSION}.zip" -o /tmp/woocommerce.zip
+          unzip -q /tmp/woocommerce.zip -d /tmp/woocommerce
+
+      - name: Run PHPUnit (WordPress + WooCommerce)
         run: composer run test
