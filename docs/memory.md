@@ -72,6 +72,31 @@ log every non-obvious decision WITH its reason.
   enforce opt-out so no email is ever sent to a suppressed address (unsubscribe IS honored);
   (2) the privacy exporter returns status/total/timestamps but not `cart_contents`. Neither is a
   security defect; left unchanged to avoid unrequested behavior/scope change.
+  SUPERSEDED 2026-07-23: both observations were addressed in the improvement pass below.
+
+## Improvement pass (2026-07-23)
+
+- Acted on the two data-minimization/GDPR observations from the senior pass, plus added
+  integration coverage. Gates green throughout: PHPCS clean (29 files); full integration suite
+  63 tests / 148 assertions (was 57 / 135), run locally against WP 6.8.2 + WooCommerce 10.6.2 and
+  in CI. No dependency added, no schema change (so no migration).
+- `fix: skip cart capture for opted-out logged-in customers` (d2a378b). `capture_logged_in()` now
+  checks `wcr_is_opted_out()` before upsert, mirroring the guest path, so a suppressed address gets
+  no row written at all. Order-continuity is intact: opted-out carts never entered the recovery flow
+  (the sweep already excludes them) and `WCR_Orders` still operates on any pre-existing row; only the
+  writing of a never-mailed row is avoided. Tests: opted-out logged-in customer writes zero rows,
+  and a non-opted-out logged-in customer is still captured once (both fail without the guard).
+- `feat: include cart contents in the privacy exporter` (eff73e3). The WordPress personal-data
+  exporter now adds a "Cart contents" field via a null-safe `format_cart_contents()` helper (product
+  name when the product still exists, else "Product #id"; nothing for anonymized/null rows). Test
+  asserts the field is present and non-empty (fails without the change).
+- Added coverage (test-only): recovered carts within the retention window are not anonymized
+  (267ecb7); erasure clears the exporter output for that address (ad0e019); an order placed while a
+  send is still scheduled cancels it so the worker dispatches nothing (0b6de6d) — the cross-component
+  order->sender race that no prior test exercised end to end.
+- Note: this environment now has the WordPress core test library provisioned, so the full
+  integration suite runs locally (set `WP_TESTS_DIR` and `WCR_TESTS_WOOCOMMERCE` per docs/testing.md);
+  earlier passes could only run unit mode here.
 - README senior signals: CI-status and MIT license badges at the top; a "Design decisions" section
   sourced from docs/architecture.md and docs/memory.md (consent-gated guest capture, no
   open/click pixels, custom tables over postmeta, hashed-email opt-out surviving anonymization,
