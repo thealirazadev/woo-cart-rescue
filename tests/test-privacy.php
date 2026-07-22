@@ -163,6 +163,21 @@ class WCR_Test_Privacy extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A recovered cart still within the retention window is not anonymized.
+	 *
+	 * @return void
+	 */
+	public function test_keeps_recent_recovered() {
+		$cart_id = $this->seed_cart( 'recovered', 1, 'recent-recovered@example.com' );
+
+		( new WCR_Privacy() )->cleanup();
+
+		$cart = wcr_get_cart( $cart_id );
+		$this->assertSame( 'recovered', $cart->status );
+		$this->assertSame( 'recent-recovered@example.com', $cart->email );
+	}
+
+	/**
 	 * The eraser anonymizes cart records for an email.
 	 *
 	 * @return void
