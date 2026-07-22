@@ -141,6 +141,28 @@ class WCR_Test_Privacy extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The exporter includes the stored cart contents, the user's own data.
+	 *
+	 * @return void
+	 */
+	public function test_exporter_includes_cart_contents() {
+		$this->seed_cart( 'abandoned', 1, 'contents@example.com' );
+
+		$result = ( new WCR_Privacy() )->export_personal_data( 'contents@example.com' );
+
+		$fields = array();
+
+		foreach ( $result['data'] as $group ) {
+			foreach ( $group['data'] as $field ) {
+				$fields[ $field['name'] ] = $field['value'];
+			}
+		}
+
+		$this->assertArrayHasKey( 'Cart contents', $fields );
+		$this->assertNotEmpty( $fields['Cart contents'] );
+	}
+
+	/**
 	 * The eraser anonymizes cart records for an email.
 	 *
 	 * @return void
