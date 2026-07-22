@@ -178,6 +178,22 @@ class WCR_Test_Privacy extends WP_UnitTestCase {
 	}
 
 	/**
+	 * After erasure the exporter returns nothing for that address.
+	 *
+	 * @return void
+	 */
+	public function test_export_is_empty_after_erase() {
+		$this->seed_cart( 'abandoned', 1, 'gone@example.com' );
+
+		( new WCR_Privacy() )->erase_personal_data( 'gone@example.com' );
+
+		$result = ( new WCR_Privacy() )->export_personal_data( 'gone@example.com' );
+
+		$this->assertTrue( $result['done'] );
+		$this->assertSame( array(), $result['data'] );
+	}
+
+	/**
 	 * The eraser anonymizes cart records for an email.
 	 *
 	 * @return void
