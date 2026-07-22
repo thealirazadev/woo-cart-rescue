@@ -95,28 +95,41 @@ class WCR_Privacy {
 		$items = array();
 
 		foreach ( (array) $rows as $row ) {
+			$data = array(
+				array(
+					'name'  => __( 'Status', 'woo-cart-rescue' ),
+					'value' => $row->status,
+				),
+				array(
+					'name'  => __( 'Cart total', 'woo-cart-rescue' ),
+					'value' => $row->cart_total . ' ' . $row->currency,
+				),
+				array(
+					'name'  => __( 'Captured at', 'woo-cart-rescue' ),
+					'value' => $row->created_at,
+				),
+				array(
+					'name'  => __( 'Last activity at', 'woo-cart-rescue' ),
+					'value' => $row->last_activity_at,
+				),
+			);
+
+			$contents = $this->format_cart_contents( $row->cart_contents );
+
+			// Stored cart contents are the visitor's own personal data; include them when present
+			// (anonymized rows carry a null value and add nothing here).
+			if ( '' !== $contents ) {
+				$data[] = array(
+					'name'  => __( 'Cart contents', 'woo-cart-rescue' ),
+					'value' => $contents,
+				);
+			}
+
 			$items[] = array(
 				'group_id'    => 'wcr_carts',
 				'group_label' => __( 'Abandoned cart records', 'woo-cart-rescue' ),
 				'item_id'     => 'wcr-cart-' . (int) $row->id,
-				'data'        => array(
-					array(
-						'name'  => __( 'Status', 'woo-cart-rescue' ),
-						'value' => $row->status,
-					),
-					array(
-						'name'  => __( 'Cart total', 'woo-cart-rescue' ),
-						'value' => $row->cart_total . ' ' . $row->currency,
-					),
-					array(
-						'name'  => __( 'Captured at', 'woo-cart-rescue' ),
-						'value' => $row->created_at,
-					),
-					array(
-						'name'  => __( 'Last activity at', 'woo-cart-rescue' ),
-						'value' => $row->last_activity_at,
-					),
-				),
+				'data'        => $data,
 			);
 		}
 
@@ -124,6 +137,55 @@ class WCR_Privacy {
 			'data' => $items,
 			'done' => true,
 		);
+	}
+
+	/**
+	 * Renders stored cart contents as a readable summary for export.
+	 *
+	 * Uses the product name when the product still exists, falling back to the
+	 * stored id, and is null-safe for anonymized or malformed JSON.
+	 *
+	 * @param string|null $json Stored cart_contents JSON.
+	 * @return string Comma-separated item summary, empty when there is nothing to show.
+	 */
+	protected function format_cart_contents( $json ) {
+		$contents = json_decode( (string) $json, true );
+
+		if ( ! is_array( $contents ) || array() === $contents ) {
+			return '';
+		}
+
+		$lines = array();
+
+		foreach ( $contents as $line ) {
+			if ( ! is_array( $line ) ) {
+				continue;
+			}
+
+			$product_id   = isset( $line['product_id'] ) ? (int) $line['product_id'] : 0;
+			$variation_id = isset( $line['variation_id'] ) ? (int) $line['variation_id'] : 0;
+			$quantity     = isset( $line['quantity'] ) ? (int) $line['quantity'] : 0;
+			$lookup       = $variation_id ? $variation_id : $product_id;
+			$name         = '';
+
+			if ( $lookup && function_exists( 'wc_get_product' ) ) {
+				$product = wc_get_product( $lookup );
+
+				if ( $product ) {
+					$name = $product->get_name();
+				}
+			}
+
+			if ( '' === $name ) {
+				/* translators: %d: stored product id. */
+				$name = sprintf( __( 'Product #%d', 'woo-cart-rescue' ), $lookup );
+			}
+
+			/* translators: 1: product name, 2: quantity. */
+			$lines[] = sprintf( __( '%1$s (qty %2$d)', 'woo-cart-rescue' ), $name, $quantity );
+		}
+
+		return implode( ', ', $lines );
 	}
 
 	/**
