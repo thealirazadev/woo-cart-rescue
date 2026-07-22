@@ -209,6 +209,45 @@ class WCR_Test_Orders extends WP_UnitTestCase {
 	}
 
 	/**
+	 * An order placed while a send is still scheduled stops it from mailing.
+	 *
+	 * Mirrors the documented race: the order handler flips the cart off abandoned and
+	 * cancels the send before the worker runs, so the worker finds a non-scheduled row
+	 * and dispatches nothing.
+	 *
+	 * @return void
+	 */
+	public function test_order_in_flight_stops_pending_send() {
+		if ( ! function_exists( 'wc_create_order' ) ) {
+			$this->markTestSkipped( 'WooCommerce order helpers unavailable.' );
+		}
+
+		if ( function_exists( 'reset_phpmailer_instance' ) ) {
+			reset_phpmailer_instance();
+		}
+
+		update_option( 'wcr_token_secret', str_repeat( 'a', 64 ) );
+
+		$this->init_session();
+		list( $cart_id, $send_id ) = $this->seed( 'inflight@example.com' );
+
+		$order = wc_create_order();
+		$order->set_billing_email( 'inflight@example.com' );
+		$order->save();
+
+		( new WCR_Orders() )->on_order_processed( $order->get_id() );
+
+		// The worker fires after the order has already cancelled the send.
+		( new WCR_Sender() )->handle( $send_id );
+
+		$this->assertSame( 'completed', wcr_get_cart( $cart_id )->status );
+		$this->assertSame( 'cancelled', wcr_get_send( $send_id )->status );
+
+		$sent = ( isset( $GLOBALS['phpmailer'] ) && isset( $GLOBALS['phpmailer']->mock_sent ) ) ? count( $GLOBALS['phpmailer']->mock_sent ) : 0;
+		$this->assertSame( 0, $sent );
+	}
+
+	/**
 	 * A later pending step is cancelled when an order is placed.
 	 *
 	 * @return void
