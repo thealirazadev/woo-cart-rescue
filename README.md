@@ -15,6 +15,12 @@ script, PHPUnit and PHPCS (WordPress Coding Standards) for quality gates.
 
 Status: v1.0.0 implemented (phases 1-5 complete).
 
+## Screenshots
+
+![Recovery report showing stat cards for carts abandoned, emails sent with a per-step breakdown, recovered orders, recovered revenue, and recovery rate over a date range](docs/images/recovery-report.png)
+
+![Settings screen with the general capture options and a configured three-step recovery email sequence, each step showing its enable toggle and delay](docs/images/settings.png)
+
 ## Install
 
 1. Copy this folder to `wp-content/plugins/woo-cart-rescue` on a site with WooCommerce active.
