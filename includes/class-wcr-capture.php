@@ -221,7 +221,17 @@ class WCR_Capture {
 			return;
 		}
 
-		$this->upsert( sanitize_email( $user->user_email ), get_current_user_id(), true );
+		$email = sanitize_email( $user->user_email );
+
+		// Data minimization: an opted-out customer gets no cart row at all, matching the
+		// guest capture path. The sweep and send-time recheck already suppress mail to
+		// opted-out addresses, so this only avoids storing a row that would never be
+		// emailed; order handling still operates on any row that already exists.
+		if ( wcr_is_opted_out( $email ) ) {
+			return;
+		}
+
+		$this->upsert( $email, get_current_user_id(), true );
 	}
 
 	/**

@@ -179,6 +179,58 @@ class WCR_Test_Capture extends WP_Ajax_UnitTestCase {
 	}
 
 	/**
+	 * A logged-in customer on the opt-out list gets no cart row written.
+	 *
+	 * @return void
+	 */
+	public function test_logged_in_optout_writes_no_row() {
+		$this->assertTrue( $this->seed_cart(), 'The test product could not be added to the cart.' );
+
+		$user_id = self::factory()->user->create(
+			array(
+				'user_email' => 'member@example.com',
+				'role'       => 'customer',
+			)
+		);
+		wp_set_current_user( $user_id );
+
+		global $wpdb;
+		$wpdb->insert(
+			wcr_table( 'optouts' ),
+			array(
+				'email_hash' => wcr_email_hash( 'member@example.com' ),
+				'created_at' => wcr_now(),
+			),
+			array( '%s', '%s' )
+		);
+
+		( new WCR_Capture() )->capture_logged_in();
+
+		$this->assertSame( 0, $this->count_carts() );
+	}
+
+	/**
+	 * A logged-in customer who has not opted out is captured once.
+	 *
+	 * @return void
+	 */
+	public function test_logged_in_without_optout_is_captured() {
+		$this->assertTrue( $this->seed_cart(), 'The test product could not be added to the cart.' );
+
+		$user_id = self::factory()->user->create(
+			array(
+				'user_email' => 'active-member@example.com',
+				'role'       => 'customer',
+			)
+		);
+		wp_set_current_user( $user_id );
+
+		( new WCR_Capture() )->capture_logged_in();
+
+		$this->assertSame( 1, $this->count_carts() );
+	}
+
+	/**
 	 * Dispatches the capture AJAX action and returns the decoded response.
 	 *
 	 * @return array
