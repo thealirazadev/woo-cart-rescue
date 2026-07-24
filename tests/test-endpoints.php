@@ -139,6 +139,46 @@ class WCR_Test_Endpoints extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A restore against a cart with no items is rejected as empty_cart.
+	 *
+	 * @return void
+	 */
+	public function test_restore_rejects_empty_cart() {
+		global $wpdb;
+		list( $cart_id, , $token ) = $this->seed_with_token();
+
+		$wpdb->update( wcr_table( 'carts' ), array( 'cart_contents' => wp_json_encode( array() ) ), array( 'id' => $cart_id ) );
+
+		$result = WCR_Token::validate_restore( $token );
+		$this->assertFalse( $result['ok'] );
+		$this->assertSame( 'empty_cart', $result['code'] );
+	}
+
+	/**
+	 * Unsubscribe deliberately ignores expiry and single-use so an old email
+	 * still works, even when the same token would be rejected for restore.
+	 *
+	 * @return void
+	 */
+	public function test_unsubscribe_token_valid_despite_expiry_and_reuse() {
+		global $wpdb;
+		list( , $send_id, $token ) = $this->seed_with_token( 'abandoned', time() - HOUR_IN_SECONDS );
+
+		// Mark the token already used, as a successful restore would.
+		$wpdb->update( wcr_table( 'sends' ), array( 'token_used_at' => wcr_now() ), array( 'id' => $send_id ) );
+
+		// Restore rejects it: expiry is checked before single-use.
+		$restore = WCR_Token::validate_restore( $token );
+		$this->assertFalse( $restore['ok'] );
+		$this->assertSame( 'expired', $restore['code'] );
+
+		// Unsubscribe still validates the same token.
+		$unsub = WCR_Token::validate_unsubscribe( $token );
+		$this->assertTrue( $unsub['ok'] );
+		$this->assertSame( $send_id, (int) $unsub['send']->id );
+	}
+
+	/**
 	 * A tampered token is rejected as bad signature.
 	 *
 	 * @return void
