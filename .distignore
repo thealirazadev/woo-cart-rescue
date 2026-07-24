@@ -1,6 +1,7 @@
 /.git
 /.gitignore
 /.github
+/.editorconfig
 /.distignore
 /.wp-env.json
 /build
