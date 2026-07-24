@@ -93,11 +93,11 @@ class WCR_Admin {
 		);
 
 		add_settings_field( 'wcr_enabled', __( 'Enable cart recovery', 'woo-cart-rescue' ), array( $this, 'field_enabled' ), self::PAGE_SECTION, 'wcr_general' );
-		add_settings_field( 'wcr_idle_window', __( 'Idle window (minutes)', 'woo-cart-rescue' ), array( $this, 'field_idle_window' ), self::PAGE_SECTION, 'wcr_general' );
-		add_settings_field( 'wcr_retention_days', __( 'Retention (days)', 'woo-cart-rescue' ), array( $this, 'field_retention_days' ), self::PAGE_SECTION, 'wcr_general' );
-		add_settings_field( 'wcr_token_ttl_days', __( 'Restore link lifetime (days)', 'woo-cart-rescue' ), array( $this, 'field_token_ttl_days' ), self::PAGE_SECTION, 'wcr_general' );
-		add_settings_field( 'wcr_attribution_days', __( 'Attribution window (days)', 'woo-cart-rescue' ), array( $this, 'field_attribution_days' ), self::PAGE_SECTION, 'wcr_general' );
-		add_settings_field( 'wcr_consent_label', __( 'Consent checkbox label', 'woo-cart-rescue' ), array( $this, 'field_consent_label' ), self::PAGE_SECTION, 'wcr_general' );
+		add_settings_field( 'wcr_idle_window', __( 'Idle window (minutes)', 'woo-cart-rescue' ), array( $this, 'field_idle_window' ), self::PAGE_SECTION, 'wcr_general', array( 'label_for' => 'wcr_idle_window' ) );
+		add_settings_field( 'wcr_retention_days', __( 'Retention (days)', 'woo-cart-rescue' ), array( $this, 'field_retention_days' ), self::PAGE_SECTION, 'wcr_general', array( 'label_for' => 'wcr_retention_days' ) );
+		add_settings_field( 'wcr_token_ttl_days', __( 'Restore link lifetime (days)', 'woo-cart-rescue' ), array( $this, 'field_token_ttl_days' ), self::PAGE_SECTION, 'wcr_general', array( 'label_for' => 'wcr_token_ttl_days' ) );
+		add_settings_field( 'wcr_attribution_days', __( 'Attribution window (days)', 'woo-cart-rescue' ), array( $this, 'field_attribution_days' ), self::PAGE_SECTION, 'wcr_general', array( 'label_for' => 'wcr_attribution_days' ) );
+		add_settings_field( 'wcr_consent_label', __( 'Consent checkbox label', 'woo-cart-rescue' ), array( $this, 'field_consent_label' ), self::PAGE_SECTION, 'wcr_general', array( 'label_for' => 'wcr_consent_label' ) );
 
 		add_settings_section(
 			'wcr_steps',
@@ -151,8 +151,8 @@ class WCR_Admin {
 	public function field_idle_window() {
 		$settings = wcr_get_settings();
 		?>
-		<input type="number" id="wcr_idle_window" name="wcr_settings[idle_window]" min="5" max="10080" step="1" value="<?php echo esc_attr( (string) $settings['idle_window'] ); ?>" />
-		<p class="description"><?php esc_html_e( 'Minutes of inactivity before a cart is considered abandoned (5 to 10080).', 'woo-cart-rescue' ); ?></p>
+		<input type="number" id="wcr_idle_window" name="wcr_settings[idle_window]" min="5" max="10080" step="1" value="<?php echo esc_attr( (string) $settings['idle_window'] ); ?>" aria-describedby="wcr_idle_window_description" />
+		<p class="description" id="wcr_idle_window_description"><?php esc_html_e( 'Minutes of inactivity before a cart is considered abandoned (5 to 10080).', 'woo-cart-rescue' ); ?></p>
 		<?php
 	}
 
@@ -164,8 +164,8 @@ class WCR_Admin {
 	public function field_retention_days() {
 		$settings = wcr_get_settings();
 		?>
-		<input type="number" id="wcr_retention_days" name="wcr_settings[retention_days]" min="1" max="3650" step="1" value="<?php echo esc_attr( (string) $settings['retention_days'] ); ?>" />
-		<p class="description"><?php esc_html_e( 'Days to keep non-recovered cart data before it is purged (1 to 3650).', 'woo-cart-rescue' ); ?></p>
+		<input type="number" id="wcr_retention_days" name="wcr_settings[retention_days]" min="1" max="3650" step="1" value="<?php echo esc_attr( (string) $settings['retention_days'] ); ?>" aria-describedby="wcr_retention_days_description" />
+		<p class="description" id="wcr_retention_days_description"><?php esc_html_e( 'Days to keep non-recovered cart data before it is purged (1 to 3650).', 'woo-cart-rescue' ); ?></p>
 		<?php
 	}
 
@@ -177,8 +177,8 @@ class WCR_Admin {
 	public function field_token_ttl_days() {
 		$settings = wcr_get_settings();
 		?>
-		<input type="number" id="wcr_token_ttl_days" name="wcr_settings[token_ttl_days]" min="1" max="365" step="1" value="<?php echo esc_attr( (string) $settings['token_ttl_days'] ); ?>" />
-		<p class="description"><?php esc_html_e( 'How long a restore link stays valid after it is sent (1 to 365 days).', 'woo-cart-rescue' ); ?></p>
+		<input type="number" id="wcr_token_ttl_days" name="wcr_settings[token_ttl_days]" min="1" max="365" step="1" value="<?php echo esc_attr( (string) $settings['token_ttl_days'] ); ?>" aria-describedby="wcr_token_ttl_days_description" />
+		<p class="description" id="wcr_token_ttl_days_description"><?php esc_html_e( 'How long a restore link stays valid after it is sent (1 to 365 days).', 'woo-cart-rescue' ); ?></p>
 		<?php
 	}
 
@@ -190,8 +190,8 @@ class WCR_Admin {
 	public function field_attribution_days() {
 		$settings = wcr_get_settings();
 		?>
-		<input type="number" id="wcr_attribution_days" name="wcr_settings[attribution_days]" min="0" max="365" step="1" value="<?php echo esc_attr( (string) $settings['attribution_days'] ); ?>" />
-		<p class="description"><?php esc_html_e( 'Days after a restore click during which an order counts as recovered (0 to 365).', 'woo-cart-rescue' ); ?></p>
+		<input type="number" id="wcr_attribution_days" name="wcr_settings[attribution_days]" min="0" max="365" step="1" value="<?php echo esc_attr( (string) $settings['attribution_days'] ); ?>" aria-describedby="wcr_attribution_days_description" />
+		<p class="description" id="wcr_attribution_days_description"><?php esc_html_e( 'Days after a restore click during which an order counts as recovered (0 to 365).', 'woo-cart-rescue' ); ?></p>
 		<?php
 	}
 
@@ -233,8 +233,8 @@ class WCR_Admin {
 	public function field_consent_label() {
 		$settings = wcr_get_settings();
 		?>
-		<input type="text" class="regular-text" id="wcr_consent_label" name="wcr_settings[consent_label]" value="<?php echo esc_attr( (string) $settings['consent_label'] ); ?>" />
-		<p class="description"><?php esc_html_e( 'Shown next to the checkout consent checkbox. Name what is stored and why.', 'woo-cart-rescue' ); ?></p>
+		<input type="text" class="regular-text" id="wcr_consent_label" name="wcr_settings[consent_label]" value="<?php echo esc_attr( (string) $settings['consent_label'] ); ?>" aria-describedby="wcr_consent_label_description" />
+		<p class="description" id="wcr_consent_label_description"><?php esc_html_e( 'Shown next to the checkout consent checkbox. Name what is stored and why.', 'woo-cart-rescue' ); ?></p>
 		<?php
 	}
 
@@ -302,7 +302,7 @@ class WCR_Admin {
 
 		$data = $this->get_report_data( $from, $to );
 		?>
-		<form method="get" class="wcr-report-filter">
+		<form method="get" class="wcr-report-filter" aria-label="<?php esc_attr_e( 'Filter the recovery report by date range', 'woo-cart-rescue' ); ?>">
 			<input type="hidden" name="page" value="<?php echo esc_attr( self::MENU_SLUG ); ?>" />
 			<input type="hidden" name="tab" value="report" />
 			<label for="wcr_from"><?php esc_html_e( 'From', 'woo-cart-rescue' ); ?></label>
@@ -313,7 +313,8 @@ class WCR_Admin {
 		</form>
 
 		<?php if ( $data['has_data'] ) : ?>
-			<ul class="wcr-stat-cards">
+			<h2 class="screen-reader-text"><?php esc_html_e( 'Recovery summary', 'woo-cart-rescue' ); ?></h2>
+			<ul class="wcr-stat-cards" aria-label="<?php esc_attr_e( 'Recovery summary for the selected date range', 'woo-cart-rescue' ); ?>">
 				<li class="wcr-card">
 					<span class="wcr-card-label"><?php esc_html_e( 'Carts abandoned', 'woo-cart-rescue' ); ?></span>
 					<span class="wcr-card-value"><?php echo esc_html( number_format_i18n( $data['abandoned'] ) ); ?></span>
