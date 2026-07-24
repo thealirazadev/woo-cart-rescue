@@ -31,6 +31,7 @@ do_action( 'woocommerce_email_header', $email_heading, $email ); ?>
 <p><?php esc_html_e( 'You left the following in your cart. We saved it so you can pick up where you left off.', 'woo-cart-rescue' ); ?></p>
 
 <table cellspacing="0" cellpadding="6" style="width:100%; border:1px solid #e5e5e5;" border="1">
+	<caption style="text-align:left; padding:6px 0; font-weight:600;"><?php esc_html_e( 'Your saved cart', 'woo-cart-rescue' ); ?></caption>
 	<thead>
 		<tr>
 			<th scope="col" style="text-align:left;"><?php esc_html_e( 'Product', 'woo-cart-rescue' ); ?></th>
@@ -61,7 +62,7 @@ do_action( 'woocommerce_email_header', $email_heading, $email ); ?>
 
 <p><strong><?php esc_html_e( 'Cart total:', 'woo-cart-rescue' ); ?></strong> <?php echo wp_kses_post( $cart_total ); ?></p>
 
-<table cellspacing="0" cellpadding="0" style="margin:24px 0;">
+<table role="presentation" cellspacing="0" cellpadding="0" style="margin:24px 0;">
 	<tr>
 		<td style="border-radius:4px; background:<?php echo esc_attr( $button_color ); ?>;">
 			<a href="<?php echo esc_url( $restore_url ); ?>" style="display:inline-block; padding:12px 24px; color:#ffffff; font-size:16px; font-weight:600; text-decoration:none; border-radius:4px;">

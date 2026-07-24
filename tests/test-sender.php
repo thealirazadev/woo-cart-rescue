@@ -138,6 +138,24 @@ class WCR_Test_Sender extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The rendered HTML email exposes the item list as a captioned data table
+	 * and marks the CTA layout table as presentational.
+	 *
+	 * @return void
+	 */
+	public function test_recovery_email_body_is_accessible() {
+		list( , $send_id ) = $this->seed( 'abandoned' );
+
+		( new WCR_Sender() )->handle( $send_id );
+
+		$this->assertSame( 1, $this->sent_count() );
+		$body = $GLOBALS['phpmailer']->mock_sent[0]['body'];
+
+		$this->assertStringContainsString( 'Your saved cart', $body );
+		$this->assertStringContainsString( 'role="presentation"', $body );
+	}
+
+	/**
 	 * Running the same send twice produces exactly one email.
 	 *
 	 * @return void
