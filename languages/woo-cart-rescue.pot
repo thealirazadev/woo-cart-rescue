@@ -9,15 +9,15 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-07-17T23:41:19+00:00\n"
+"POT-Creation-Date: 2026-07-24T21:13:00+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: woo-cart-rescue\n"
 
 #. Plugin Name of the plugin
 #: woo-cart-rescue.php
-#: includes/class-wcr-privacy.php:36
-#: includes/class-wcr-privacy.php:51
+#: includes/class-wcr-privacy.php:56
+#: includes/class-wcr-privacy.php:71
 msgid "WooCommerce Cart Rescue"
 msgstr ""
 
@@ -123,6 +123,10 @@ msgstr ""
 msgid "Report"
 msgstr ""
 
+#: includes/class-wcr-admin.php:305
+msgid "Filter the recovery report by date range"
+msgstr ""
+
 #: includes/class-wcr-admin.php:308
 msgid "From"
 msgstr ""
@@ -135,37 +139,45 @@ msgstr ""
 msgid "Filter"
 msgstr ""
 
-#: includes/class-wcr-admin.php:318
+#: includes/class-wcr-admin.php:316
+msgid "Recovery summary"
+msgstr ""
+
+#: includes/class-wcr-admin.php:317
+msgid "Recovery summary for the selected date range"
+msgstr ""
+
+#: includes/class-wcr-admin.php:319
 msgid "Carts abandoned"
 msgstr ""
 
-#: includes/class-wcr-admin.php:322
+#: includes/class-wcr-admin.php:323
 msgid "Emails sent"
 msgstr ""
 
 #. translators: 1: step 1 count, 2: step 2 count, 3: step 3 count.
-#: includes/class-wcr-admin.php:328
+#: includes/class-wcr-admin.php:329
 #, php-format
 msgid "Step 1: %1$s, Step 2: %2$s, Step 3: %3$s"
 msgstr ""
 
-#: includes/class-wcr-admin.php:337
+#: includes/class-wcr-admin.php:338
 msgid "Recovered orders"
 msgstr ""
 
-#: includes/class-wcr-admin.php:341
+#: includes/class-wcr-admin.php:342
 msgid "Recovered revenue"
 msgstr ""
 
-#: includes/class-wcr-admin.php:345
+#: includes/class-wcr-admin.php:346
 msgid "Recovery rate"
 msgstr ""
 
-#: includes/class-wcr-admin.php:349
+#: includes/class-wcr-admin.php:350
 msgid "Opens: not tracked."
 msgstr ""
 
-#: includes/class-wcr-admin.php:351
+#: includes/class-wcr-admin.php:352
 msgid "No cart activity in this range yet."
 msgstr ""
 
@@ -216,7 +228,7 @@ msgid "Item"
 msgstr ""
 
 #: includes/class-wcr-email-recovery.php:240
-#: templates/emails/recovery.php:80
+#: templates/emails/recovery.php:81
 msgid "Unsubscribe from cart reminders"
 msgstr ""
 
@@ -236,24 +248,44 @@ msgid_plural "%d items from your saved cart are no longer available."
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/class-wcr-privacy.php:80
-msgid "Abandoned cart records"
+#: includes/class-wcr-privacy.php:41
+msgid "This store recovers abandoned carts. When you are signed in, or when you enter your email at checkout and tick the consent box, we store your email address, the contents of your cart, and activity timestamps so we can send you a reminder with a link back to your cart. Every reminder includes an unsubscribe link. Saved cart data is deleted or anonymized after a retention period, and can be exported or erased through this site's personal data tools."
 msgstr ""
 
-#: includes/class-wcr-privacy.php:84
+#: includes/class-wcr-privacy.php:100
 msgid "Status"
 msgstr ""
 
-#: includes/class-wcr-privacy.php:88
+#: includes/class-wcr-privacy.php:104
 msgid "Cart total"
 msgstr ""
 
-#: includes/class-wcr-privacy.php:92
+#: includes/class-wcr-privacy.php:108
 msgid "Captured at"
 msgstr ""
 
-#: includes/class-wcr-privacy.php:96
+#: includes/class-wcr-privacy.php:112
 msgid "Last activity at"
+msgstr ""
+
+#: includes/class-wcr-privacy.php:123
+msgid "Cart contents"
+msgstr ""
+
+#: includes/class-wcr-privacy.php:130
+msgid "Abandoned cart records"
+msgstr ""
+
+#. translators: %d: stored product id.
+#: includes/class-wcr-privacy.php:181
+#, php-format
+msgid "Product #%d"
+msgstr ""
+
+#. translators: 1: product name, 2: quantity.
+#: includes/class-wcr-privacy.php:185
+#, php-format
+msgid "%1$s (qty %2$d)"
 msgstr ""
 
 #: includes/wcr-functions.php:69
@@ -281,7 +313,7 @@ msgstr ""
 
 #. translators: %d: number of additional cart items not shown.
 #: templates/emails/plain/recovery.php:35
-#: templates/emails/recovery.php:54
+#: templates/emails/recovery.php:55
 #, php-format
 msgid "and %d more item"
 msgid_plural "and %d more items"
@@ -306,27 +338,31 @@ msgstr ""
 msgid "You left the following in your cart. We saved it so you can pick up where you left off."
 msgstr ""
 
-#: templates/emails/recovery.php:36
-msgid "Product"
+#: templates/emails/recovery.php:34
+msgid "Your saved cart"
 msgstr ""
 
 #: templates/emails/recovery.php:37
-msgid "Quantity"
+msgid "Product"
 msgstr ""
 
 #: templates/emails/recovery.php:38
+msgid "Quantity"
+msgstr ""
+
+#: templates/emails/recovery.php:39
 msgid "Total"
 msgstr ""
 
-#: templates/emails/recovery.php:62
+#: templates/emails/recovery.php:63
 msgid "Cart total:"
 msgstr ""
 
-#: templates/emails/recovery.php:68
+#: templates/emails/recovery.php:69
 msgid "Return to your cart"
 msgstr ""
 
-#: templates/emails/recovery.php:75
+#: templates/emails/recovery.php:76
 msgid "If the button does not work, copy and paste this link into your browser:"
 msgstr ""
 
