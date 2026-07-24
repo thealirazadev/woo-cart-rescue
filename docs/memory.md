@@ -161,6 +161,37 @@ log every non-obvious decision WITH its reason.
   WooCommerce) that runs the whole suite; `checks` still runs it in unit mode so the stub path stays
   covered. docs/testing.md documents the provisioning commands.
 
+## Repo maturity + accessibility pass (2026-07-25)
+
+- Added the repo-maturity files this public repo lacked, one per commit, all project-specific:
+  `CONTRIBUTING.md` (WP+Woo test provisioning per docs/testing.md, phpcs/phpunit commands, PR
+  expectations), `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1, contact thealirazadev@gmail.com),
+  `.github/ISSUE_TEMPLATE/{bug_report.md,feature_request.md,config.yml}` (security routed to the
+  Security tab, blank issues disabled), `.github/PULL_REQUEST_TEMPLATE.md` (checklist tied to phpcs
+  + phpunit + migrations + i18n), `.editorconfig` (tabs for PHP/JS/CSS, spaces for YAML/JSON), and
+  `CHANGELOG.md` (Keep a Changelog; honest 1.0.0 entry dated to the first commit 2026-07-18 plus an
+  Unreleased section for this pass). New root dev docs are excluded from the plugin zip via
+  `.distignore` (`.github` already was).
+- Accessibility (Tier 2), tested where behaviour changed:
+  - Admin screens: the five scalar settings controls now carry a `label_for` label and
+    `aria-describedby` help text; the report summary list has an accessible name and a
+    screen-reader heading. New `tests/test-admin.php` renders `do_settings_sections` and
+    `render_report_tab` (reflection) to assert the wiring.
+  - Recovery email HTML: the saved-items table gained a `<caption>` and the CTA layout table is
+    `role="presentation"`. `WCR_Test_Sender::test_recovery_email_body_is_accessible` asserts both in
+    the sent body.
+- New coverage for genuinely thin paths (no duplicates of existing tests): `validate_restore`
+  empty-cart rejection, and unsubscribe validating a token that restore rejects for expiry+reuse
+  (the documented divergence). Added to `tests/test-endpoints.php`.
+- i18n: regenerated `languages/woo-cart-rescue.pot` (81 -> 89 msgids, none dropped). Four new
+  strings are this pass's a11y additions; the other four ("Cart contents", "Product #%d",
+  "%1$s (qty %2$d)", the privacy-policy snippet) were user-facing strings added in the 2026-07-23
+  exporter/privacy pass that the stale 2026-07-17 .pot never captured, so this closes a real i18n
+  gap, not just the new strings.
+- Gates green throughout and in CI: PHPCS clean (31 files), `php -l` clean, PHPUnit integration
+  suite 68 tests / 174 assertions (was 63 / 148). No dependency added, no schema change (no
+  migration). GitHub Actions green on both jobs after the push.
+
 ## Decisions log
 
 - 2026-07-22 - WordPress 6.8.2 + WooCommerce 10.6.2 are pinned for the integration suite (CI and
