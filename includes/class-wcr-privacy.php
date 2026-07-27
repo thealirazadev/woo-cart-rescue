@@ -229,6 +229,7 @@ class WCR_Privacy {
 
 		$purged     = $this->purge_stale( $cutoff );
 		$anonymized = $this->anonymize_recovered( $cutoff );
+		$coupons    = $this->delete_expired_coupons();
 
 		wcr_log(
 			'info',
@@ -236,8 +237,54 @@ class WCR_Privacy {
 			array(
 				'purged'     => $purged,
 				'anonymized' => $anonymized,
+				'coupons'    => $coupons,
 			)
 		);
+	}
+
+	/**
+	 * Deletes expired auto-generated recovery coupons in a bounded batch.
+	 *
+	 * Coupons carry the _wcr_auto_generated meta from creation; only those whose
+	 * expiry has passed are removed, so a live coupon is never deleted. Bounded
+	 * to 100 per run to keep the daily job predictable.
+	 *
+	 * @return int Number of coupons deleted.
+	 */
+	protected function delete_expired_coupons() {
+		if ( ! class_exists( 'WC_Coupon' ) ) {
+			return 0;
+		}
+
+		$ids = get_posts(
+			array(
+				'post_type'   => 'shop_coupon',
+				'post_status' => 'any',
+				'numberposts' => 100,
+				'fields'      => 'ids',
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Bounded daily cron batch keyed on the plugin's own coupon marker.
+				'meta_query'  => array(
+					array(
+						'key'   => '_wcr_auto_generated',
+						'value' => 'yes',
+					),
+				),
+			)
+		);
+
+		$deleted = 0;
+
+		foreach ( (array) $ids as $id ) {
+			$coupon  = new WC_Coupon( (int) $id );
+			$expires = $coupon->get_date_expires();
+
+			if ( $expires && $expires->getTimestamp() <= time() ) {
+				wp_delete_post( (int) $id, true );
+				++$deleted;
+			}
+		}
+
+		return $deleted;
 	}
 
 	/**
