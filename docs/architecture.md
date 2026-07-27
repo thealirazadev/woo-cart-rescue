@@ -26,7 +26,7 @@ bootstraps an orchestrator (`WCR_Plugin`) that wires the components below.
    checkout. Unsubscribe verifies the signature only, cancels the sequence, and records an opt-out.
 6. Orders (`WCR_Orders`): on `woocommerce_checkout_order_processed`, finds the matching cart row
    (by session key, then user id, then billing email), cancels all pending sends and scheduled
-   actions, and — if the attribution session keys are present and unexpired — marks the cart
+   actions, and - if the attribution session keys are present and unexpired - marks the cart
    `recovered` with the order id and total.
 7. Privacy (`WCR_Privacy`): a daily `wcr_retention_cleanup` action purges stale non-recovered data
    and anonymizes recovered rows; registers the personal-data exporter and eraser.
@@ -210,7 +210,7 @@ Indexes: UNIQUE `cart_key`; KEY `(status, last_activity_at)`; KEY `email`.
 | sent_at | DATETIME NULL | |
 | created_at, updated_at | DATETIME NOT NULL | |
 
-Indexes: UNIQUE `(cart_id, step)` — schema-level duplicate-send protection; KEY `(status, scheduled_for)`.
+Indexes: UNIQUE `(cart_id, step)` - schema-level duplicate-send protection; KEY `(status, scheduled_for)`.
 
 ### wcr_events
 
@@ -239,12 +239,12 @@ Suppression list that survives cart anonymization; stores no plaintext addresses
 
 Relationships: one cart has zero-or-more sends (max 3, one per step) and zero-or-more events;
 sends and events reference `cart_id` and are deleted with their cart by the cleanup job (enforced
-in code, not by FK — MySQL FKs are unreliable across WP hosts). Opt-outs are keyed by email hash,
+in code, not by FK - MySQL FKs are unreliable across WP hosts). Opt-outs are keyed by email hash,
 independent of any cart.
 
 ### Token format
 
-`token = "{send_id}.{expires}.{nonce}.{sig}"` — all URL-safe, no encoding step needed.
+`token = "{send_id}.{expires}.{nonce}.{sig}"` - all URL-safe, no encoding step needed.
 
 - `send_id`: integer id of the `wcr_sends` row.
 - `expires`: unix timestamp, `sent_at + token TTL` (default 7 days).
@@ -265,7 +265,7 @@ leak exposes no usable links. Validation steps are specified in docs/api-contrac
   subject/heading in WooCommerce's standard email settings options.
 - Scheduled state: pending actions in Action Scheduler's own tables, group `woo-cart-rescue`
   (`wcr_abandonment_sweep` recurring, `wcr_send_step` singles, `wcr_retention_cleanup` daily).
-  Always reconciled against `wcr_sends.status` at run time — the send row, not the scheduled
+  Always reconciled against `wcr_sends.status` at run time - the send row, not the scheduled
   action, is authoritative.
 - Session state: WC session keys `wcr_recovery_cart_id`, `wcr_recovery_send_id`,
   `wcr_recovery_expires` set by the restore endpoint, read once at order placement.
@@ -275,10 +275,10 @@ leak exposes no usable links. Validation steps are specified in docs/api-contrac
 ## External dependencies and required env vars
 
 - Runtime: WooCommerce active (checked at bootstrap; admin notice and no-op otherwise). Action
-  Scheduler arrives bundled with WooCommerce. Nothing else — no external APIs, no remote calls.
+  Scheduler arrives bundled with WooCommerce. Nothing else - no external APIs, no remote calls.
 - Dev (Composer, exact-pinned): `squizlabs/php_codesniffer`, `wp-coding-standards/wpcs`,
   `phpcompatibility/phpcompatibility-wp`, `phpunit/phpunit`, `yoast/phpunit-polyfills`.
 - Environment variables: none, so no `.env` / `.env.example` ships with this project. The only
   secret is the token signing key, which is generated on the target site at activation and stored
-  in an option — it must be per-site, so a dotenv file would be wrong. Local email testing uses a
+  in an option - it must be per-site, so a dotenv file would be wrong. Local email testing uses a
   mail catcher in the dev environment (see docs/testing.md), not credentials in the repo.

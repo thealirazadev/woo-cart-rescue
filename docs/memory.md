@@ -92,7 +92,7 @@ log every non-obvious decision WITH its reason.
   asserts the field is present and non-empty (fails without the change).
 - Added coverage (test-only): recovered carts within the retention window are not anonymized
   (267ecb7); erasure clears the exporter output for that address (ad0e019); an order placed while a
-  send is still scheduled cancels it so the worker dispatches nothing (0b6de6d) — the cross-component
+  send is still scheduled cancels it so the worker dispatches nothing (0b6de6d) - the cross-component
   order->sender race that no prior test exercised end to end.
 - Note: this environment now has the WordPress core test library provisioned, so the full
   integration suite runs locally (set `WP_TESTS_DIR` and `WCR_TESTS_WOOCOMMERCE` per docs/testing.md);
@@ -123,7 +123,7 @@ log every non-obvious decision WITH its reason.
   field already declared in `composer.json` and the plugin header.
 - `.github/workflows/ci.yml` added: GitHub Actions on push and pull_request to `main`. One job on
   `ubuntu-latest` with PHP 8.2 (`shivammathur/setup-php@v2`, no coverage) running the same gates
-  documented in docs/testing.md — `composer install`, `composer run lint` (PHPCS, 29 files),
+  documented in docs/testing.md - `composer install`, `composer run lint` (PHPCS, 29 files),
   `php -l` over every non-vendor PHP file, and `composer run test` (PHPUnit, 21 tests /
   45 assertions). First run on `main` was green.
 - Scoped out of CI deliberately: wp-env/Docker (no WordPress core download on the runner, and the
@@ -131,7 +131,7 @@ log every non-obvious decision WITH its reason.
   and Action Scheduler integration classes self-skip via the `WP_UnitTestCase` guard in
   `tests/bootstrap.php` and still need a WP-capable host. SUPERSEDED 2026-07-22: that was wrong. The
   integration tests never needed wp-env, only a WordPress core checkout, the core test library from
-  `wordpress-develop`, and a database — all of which a hosted runner can install in under a minute.
+  `wordpress-develop`, and a database - all of which a hosted runner can install in under a minute.
   CI now runs them. Also out: `composer run build`
   (needs wp-cli dist-archive) and the manual QA in docs/launch-checklist.md. No source or test file
   was changed to make CI pass, and no dependency was added.
@@ -146,7 +146,7 @@ log every non-obvious decision WITH its reason.
   1. `WCR_Test_Abandonment::test_resume_does_not_resend_sent_step_one` asserted the cart still had
      exactly one send row. Wrong expectation: docs/PRD.md says a resume schedules the first unsent
      step, so with step 1 already sent the sweep correctly adds a step-2 row and the count is 2.
-     Rewritten to assert what its name claims — step 1 keeps its single `sent` row, and the only
+     Rewritten to assert what its name claims - step 1 keeps its single `sent` row, and the only
      newly scheduled step is 2.
   2. `WCR_Test_Uninstall` asserted the tables were gone but they never were. The plugin's tables are
      created for real while the bootstrap loads the plugin, before `WP_UnitTestCase` installs the
@@ -154,7 +154,7 @@ log every non-obvious decision WITH its reason.
      dropped a temporary table that never existed. The case now removes those two filters and
      recreates the schema in `tear_down`.
   3. Both cart-capture tests skipped on `WC_Helper_Product`, which ships only with WooCommerce's own
-     test framework and never with a released WooCommerce package — a permanent skip. The fixture
+     test framework and never with a released WooCommerce package - a permanent skip. The fixture
      now builds a simple product through the public CRUD API, and the seeding is asserted instead of
      skipped.
 - CI gained an `integration-tests` job (mariadb service + WordPress core + core test library +
@@ -256,7 +256,7 @@ log every non-obvious decision WITH its reason.
   attempts failed with network `ETIMEDOUT` fetching WordPress core from wordpress.org (throughput
   ~15KB/s; core zip is 31MB). No containers started. Per the build authorization, fell back to
   static verification: PHPCS (WPCS) is the always-available gate; a standalone PHPUnit "unit mode"
-  suite (WP/Woo stubs, no WordPress load) covers the pure security-critical logic — token
+  suite (WP/Woo stubs, no WordPress load) covers the pure security-critical logic - token
   sign/parse/verify/tamper/expiry, settings sanitization/clamping, merge-tag rendering. The
   integration test files (capture, abandonment, sender, orders, privacy, uninstall) are written to
   the documented WP-test-suite contract and guarded to no-op when `WP_UnitTestCase` is absent, so

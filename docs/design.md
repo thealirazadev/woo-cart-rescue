@@ -8,7 +8,7 @@ WooCommerce email base) rather than shipping a custom design system.
 
 - Admin: WordPress admin palette as-is. Primary actions use core `.button-primary`
   (#2271b1); destructive/none. Report stat cards use a white card on the admin background with a
-  1px `#c3c4c7` border — no custom brand color.
+  1px `#c3c4c7` border - no custom brand color.
 - Status accents in the report (subtle, always paired with a text label, never color-only):
   sent `#2271b1`, recovered `#00753a`, cancelled/neutral `#646970`.
 - Checkout: no colors of our own; the consent row inherits the theme's form styles.
@@ -39,7 +39,7 @@ WooCommerce email base) rather than shipping a custom design system.
   required (keep core behavior).
 - Report empty state: centered message "No cart activity in this range yet." with the date filter
   still visible; never an empty table skeleton.
-- Report loading: none — the page is server-rendered. Long queries must stay fast via the indexes,
+- Report loading: none - the page is server-rendered. Long queries must stay fast via the indexes,
   not a spinner.
 - Checkout consent checkbox: unchecked by default; label is the configurable consent text plus a
   short fixed suffix linking to the privacy policy page when one is set. Error state: none of our
@@ -63,8 +63,8 @@ WooCommerce email base) rather than shipping a custom design system.
 - Contrast: all admin text meets WCAG 2.1 AA (4.5:1); the card label gray `#646970` on white
   passes; status accents are backed by text labels.
 - The consent label must be plain language, must name what is stored (email and cart contents)
-  and why (reminder emails), and must not be pre-ticked — this is both a UX and a legal
+  and why (reminder emails), and must not be pre-ticked - this is both a UX and a legal
   requirement.
-- Email accessibility: single-column 600px layout, real text (no image-only content — there are
+- Email accessibility: single-column 600px layout, real text (no image-only content - there are
   no remote images at all), link text that says where it goes ("Return to your cart"), sufficient
   contrast on the CTA, `lang` attribute on the HTML email root.

@@ -73,7 +73,7 @@ exactly the pattern this plugin exists to avoid.
 
 ### No open or click tracking pixels
 
-Recovery emails carry a signed restore link and an unsubscribe link and nothing else — no tracking
+Recovery emails carry a signed restore link and an unsubscribe link and nothing else - no tracking
 pixel, no click-through redirector. The report surfaces outcomes that matter (carts abandoned,
 emails sent per step, recovered orders and revenue, recovery rate) and states plainly that opens are
 not tracked. Rejected: an open/click pixel. It leaks the shopper's activity to the store for a
@@ -91,7 +91,7 @@ idempotent, resumable upgrade routine.
 
 ### Hashed-email opt-out table
 
-An unsubscribe records only `sha256(lowercased, trimmed email)` in `wcr_optouts` — never a plaintext
+An unsubscribe records only `sha256(lowercased, trimmed email)` in `wcr_optouts` - never a plaintext
 address. The sweep, the send-time recheck, and guest capture all consult it, so a suppression
 outlives the cart it came from: retention purges delete the cart row and anonymization nulls its
 email, but the opt-out hash remains and keeps future carts for that address suppressed. Rejected:
@@ -104,7 +104,7 @@ The abandonment sweep, every send, the step chaining, and the daily retention cl
 Action Scheduler actions in a dedicated group (Action Scheduler ships bundled with WooCommerce, so
 this adds no dependency). It survives missed cron ticks, supports group-wide unscheduling, and has
 an admin UI for inspection. Rejected: raw WP-Cron, which silently drops overdue events on
-low-traffic sites — fatal for a timing-sensitive email sequence. The send row's `status`, not the
+low-traffic sites - fatal for a timing-sensitive email sequence. The send row's `status`, not the
 scheduled action, is always authoritative and is reconciled at run time.
 
 ### Restore click resets the cart to active
@@ -126,7 +126,7 @@ dedicated rather than a `wp_salt()` derivative so unrelated salt rotation never 
 outstanding link. Sends are race-safe by construction: the worker claims a row with
 `UPDATE ... WHERE status = 'scheduled'`, then rechecks cart state as late as possible before
 dispatch, and both the order-placed and unsubscribe paths flip the cart status *before* cancelling
-sends so an in-flight worker stops itself. Rejected: distributed locks or a queue broker — the
+sends so an in-flight worker stops itself. Rejected: distributed locks or a queue broker - the
 conditional-update pattern is sufficient and adds no infrastructure.
 
 ### Auto-generated recovery coupons (opt-in, per step, single-use)

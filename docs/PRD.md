@@ -9,7 +9,7 @@ once it has been idle past a configurable window, then a sequence of up to three
 sent on configurable delays. Each email carries an HMAC-signed, expiring, single-use restore link
 that rebuilds the customer's cart and lands them on checkout, plus an unsubscribe link that stops
 the sequence immediately. The moment the customer places any order, the remaining sequence is
-cancelled — including emails already in flight at send time. Orders placed through a restore link
+cancelled - including emails already in flight at send time. Orders placed through a restore link
 within an attribution window are counted as recovered, and an admin report shows sent, recovered,
 and revenue figures. Cart records are anonymized or purged on a retention schedule and integrate
 with the WordPress personal-data export and erase tools.
