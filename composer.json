@@ -2,7 +2,7 @@
     "name": "thealirazadev/woo-cart-rescue",
     "description": "Consent-gated abandoned cart recovery for WooCommerce.",
     "type": "wordpress-plugin",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "license": "MIT",
     "require": {
         "php": ">=8.1"
