@@ -166,6 +166,7 @@ class WCR_Endpoints {
 		}
 
 		$this->rebuild_cart( $cart );
+		$this->apply_recovery_coupon( $send );
 		$this->mark_cart_active( (int) $cart->id );
 		$this->set_attribution_session( (int) $cart->id, (int) $send->id );
 
@@ -251,6 +252,46 @@ class WCR_Endpoints {
 				'notice'
 			);
 		}
+	}
+
+	/**
+	 * Applies the send's recovery coupon to the rebuilt cart when still valid.
+	 *
+	 * A missing or expired coupon is skipped silently so the shopper never sees a
+	 * discount error on an otherwise successful restore. Public for testability.
+	 *
+	 * @param object $send Send row.
+	 * @return void
+	 */
+	public function apply_recovery_coupon( $send ) {
+		$code = isset( $send->coupon_code ) ? (string) $send->coupon_code : '';
+
+		if ( '' === $code || ! function_exists( 'WC' ) || null === WC()->cart ) {
+			return;
+		}
+
+		if ( ! function_exists( 'wc_get_coupon_id_by_code' ) || ! class_exists( 'WC_Coupon' ) ) {
+			return;
+		}
+
+		$coupon_id = wc_get_coupon_id_by_code( $code );
+
+		if ( ! $coupon_id ) {
+			return;
+		}
+
+		$coupon  = new WC_Coupon( $coupon_id );
+		$expires = $coupon->get_date_expires();
+
+		if ( $expires && $expires->getTimestamp() <= time() ) {
+			return;
+		}
+
+		if ( WC()->cart->has_discount( $code ) ) {
+			return;
+		}
+
+		WC()->cart->apply_coupon( $code );
 	}
 
 	/**
