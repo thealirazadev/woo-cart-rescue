@@ -5,15 +5,17 @@
 
 A WooCommerce plugin that recovers abandoned carts. It tracks carts for logged-in customers and for
 guests who give explicit consent at checkout, detects abandonment after a configurable idle window,
-sends a scheduled recovery email sequence with signed restore links that rebuild the cart, and
-reports recovered orders and revenue in the WooCommerce admin. Consent, data retention, and token
-security are first-class requirements, not afterthoughts.
+sends a scheduled recovery email sequence with signed restore links that rebuild the cart, can
+attach an optional single-use recovery coupon to any step, and reports recovered orders and revenue
+in the WooCommerce admin. Consent, data retention, and token security are first-class requirements,
+not afterthoughts.
 
 Stack: WordPress plugin in PHP 8.1+, WooCommerce hooks and email classes, Action Scheduler for all
 timing, custom database tables with versioned migrations, vanilla JS for the checkout capture
 script, PHPUnit and PHPCS (WordPress Coding Standards) for quality gates.
 
-Status: v1.0.0 implemented (phases 1-5 complete).
+Status: v1.1.0 implemented (phases 1-6 complete). Phase 6 adds optional auto-generated recovery
+coupons.
 
 ## Screenshots
 
@@ -126,3 +128,17 @@ outstanding link. Sends are race-safe by construction: the worker claims a row w
 dispatch, and both the order-placed and unsubscribe paths flip the cart status *before* cancelling
 sends so an in-flight worker stops itself. Rejected: distributed locks or a queue broker — the
 conditional-update pattern is sufficient and adds no infrastructure.
+
+### Auto-generated recovery coupons (opt-in, per step, single-use)
+
+Coupons are off by default. When the feature is enabled and a step's coupon toggle is on, the
+race-safe send path mints a fresh `WC_Coupon` for that one send: a unique code, `usage_limit = 1`,
+and an expiry set from the configured validity window. The code is stored on the send row, exposed
+to the email subject, heading, and body through a `{coupon_code}` merge tag, and applied
+automatically when the restore link is followed (an expired or missing coupon is skipped silently,
+never surfacing a discount error). Expired auto-generated coupons are deleted by the daily retention
+job. Rejected: a single shared static coupon linked in every email. It cannot be single-use, cannot
+be tied to one shopper, leaks across the web the moment one recipient posts it, and cannot expire
+per send — the per-send generated coupon gives each reminder its own disposable, expiring incentive.
+Rejected too: discounting every step, which trains shoppers to abandon on purpose; the default
+attaches a coupon only to the final reminder.

@@ -25,6 +25,7 @@ Privacy is a first-class concern: no open or click tracking pixels, a documented
 * Consent-gated capture: logged-in customers tracked automatically; guests only after email plus explicit consent.
 * Abandonment detection via Action Scheduler with a configurable idle window.
 * Up to three recovery email steps, each with its own enable toggle, delay, subject, and heading.
+* Optional auto-generated recovery coupons: a unique, single-use, expiring coupon per send, shown via a merge tag and applied automatically when the restore link is followed.
 * HMAC-SHA256 signed restore links: expiring, single-use, and invalidated by order completion or unsubscribe.
 * Automatic cancellation on order placement, race-safe against in-flight sends.
 * Recovery attribution and an admin report with recovered revenue.
@@ -51,6 +52,10 @@ Never. A guest cart is recorded only after the guest enters a valid email at che
 = Does it work with the block checkout? =
 
 Version 1 targets the classic shortcode checkout for the guest consent field. Block checkout support is planned.
+
+= How do the recovery coupons work? =
+
+Coupons are off by default. When you enable them and switch on the coupon toggle for a step, each send of that step generates its own unique WooCommerce coupon with a usage limit of one and an expiry set from the validity window you choose. The code appears in the email through the {coupon_code} merge tag and is applied to the cart automatically when the shopper follows the restore link. Expired auto-generated coupons are removed by the daily cleanup.
 
 == Changelog ==
 
