@@ -259,6 +259,71 @@ Translation-ready, clean uninstall, HPOS-declared, PHPCS/PHPUnit green, distribu
 
 ---
 
+## Phase 6: Auto-generated recovery coupons
+
+Optionally attach a unique, single-use, expiring WooCommerce coupon to a recovery email step to
+incentivize completion. This supersedes the v1 non-goal "No automatic coupon generation in recovery
+emails (backlog candidate)" in docs/PRD.md; the non-goal is recorded as promoted in docs/memory.md.
+
+### Goal
+
+A store owner turns on recovery coupons, chooses a discount type, amount, and validity window, and
+picks which recovery steps carry a coupon. Each coupon-enabled send generates a fresh single-use
+coupon that expires on its own schedule, appears in the email through a merge tag, and is applied
+automatically when the shopper follows the restore link. Nothing is generated when the feature is
+off.
+
+### Definition of done
+
+- Settings gain a coupon section: enable/disable, discount type (percentage or fixed amount),
+  amount, and validity window in days; all validated and bounded server-side (type whitelisted,
+  amount non-negative and capped at 100 for percentages, validity 1 to 365 days). Each recovery
+  step gains an "attach a coupon" toggle.
+- A versioned dbDelta migration adds a nullable `coupon_code` column to `wcr_sends`; the migration
+  runner advances `wcr_db_version`. Migration 1 is left untouched.
+- When the feature is enabled and the sending step has its coupon toggle on, the race-safe send path
+  generates one coupon per send through the WooCommerce coupon API (`WC_Coupon`): a unique code,
+  `usage_limit = 1` (single-use), and `date_expires` set to now plus the validity window. The code is
+  stored on the send row; the coupon post is tagged with `_wcr_auto_generated` meta for cleanup.
+- The coupon code is exposed to the email subject, heading, and body via a `{coupon_code}` merge
+  tag, and the HTML and plain-text templates render an offer block only when a code is present.
+- The restore endpoint applies the send's coupon to the rebuilt cart when it still exists and has
+  not expired; an expired or missing coupon is skipped silently with no shopper-facing error.
+- The daily retention cleanup deletes expired auto-generated coupons (bounded batch) and logs the
+  count. When the feature is disabled, no coupon is generated and the send row's `coupon_code` stays
+  null.
+- Consent gating, token security, and the race-safe send path (atomic claim, send-time recheck,
+  per-step duplicate protection) are unchanged.
+
+### Manual test checklist
+
+- Enable coupons (10% off, 7-day validity), turn the coupon toggle on for step 3 only, abandon a
+  cart, run the sweep and the step sends: steps 1 and 2 carry no coupon; step 3's email shows a
+  code, and a matching single-use `shop_coupon` exists with an expiry seven days out.
+- Follow step 3's restore link: the cart is rebuilt and the coupon is applied on checkout with the
+  discount reflected in the totals.
+- Set the validity window to 1 day, wait for the coupon to expire, then follow the restore link:
+  the cart is rebuilt with no coupon applied and no error notice.
+- Disable the coupon feature and send again: the email has no coupon block and no `shop_coupon` is
+  created.
+- Switch the discount type to a fixed amount and confirm the email and applied discount use the
+  store currency.
+- Run the retention cleanup with an expired auto-generated coupon present: the coupon is deleted and
+  the log records the count.
+
+### Commits
+
+- `docs: add phase 6 for auto-generated recovery coupons`
+- `feat: add versioned migration for the send coupon code column`
+- `feat: add recovery coupon settings and admin fields`
+- `feat: generate a unique single-use coupon per coupon-enabled send`
+- `feat: expose the coupon code to the recovery email via a merge tag`
+- `feat: apply the recovery coupon when a restore link is used`
+- `feat: delete expired auto-generated coupons in retention cleanup`
+- `test: cover coupon generation, merge tag, restore, and cleanup`
+
+---
+
 ## Phase verification (run after every phase)
 
 - Run the app: activate on the dev WooCommerce site, exercise the touched flows (checkout,
