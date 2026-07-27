@@ -61,12 +61,16 @@ function wcr_load_textdomain() {
  */
 function wcr_default_settings() {
 	return array(
-		'enabled'          => true,
-		'idle_window'      => 60,
-		'retention_days'   => 30,
-		'token_ttl_days'   => 7,
-		'attribution_days' => 7,
-		'consent_label'    => __( 'Email me a reminder if I do not finish checking out.', 'woo-cart-rescue' ),
+		'enabled'              => true,
+		'idle_window'          => 60,
+		'retention_days'       => 30,
+		'token_ttl_days'       => 7,
+		'attribution_days'     => 7,
+		'consent_label'        => __( 'Email me a reminder if I do not finish checking out.', 'woo-cart-rescue' ),
+		'coupon_enabled'       => false,
+		'coupon_type'          => 'percent',
+		'coupon_amount'        => 10.0,
+		'coupon_validity_days' => 7,
 	);
 }
 
@@ -83,14 +87,17 @@ function wcr_step_defaults() {
 		1 => array(
 			'enabled' => true,
 			'delay'   => 60,
+			'coupon'  => false,
 		),
 		2 => array(
 			'enabled' => true,
 			'delay'   => 1440,
+			'coupon'  => false,
 		),
 		3 => array(
 			'enabled' => true,
 			'delay'   => 4320,
+			'coupon'  => true,
 		),
 	);
 }
@@ -99,7 +106,7 @@ function wcr_step_defaults() {
  * Resolves the enable flag and delay for a step from settings over defaults.
  *
  * @param int $step Step number 1..3.
- * @return array{enabled:bool,delay:int}
+ * @return array{enabled:bool,delay:int,coupon:bool}
  */
 function wcr_get_step_config( $step ) {
 	$step     = (int) $step;
@@ -109,6 +116,7 @@ function wcr_get_step_config( $step ) {
 		return array(
 			'enabled' => false,
 			'delay'   => 0,
+			'coupon'  => false,
 		);
 	}
 
@@ -117,10 +125,12 @@ function wcr_get_step_config( $step ) {
 
 	$enabled = isset( $stored['enabled'] ) ? (bool) $stored['enabled'] : $defaults[ $step ]['enabled'];
 	$delay   = isset( $stored['delay'] ) ? wcr_clamp( $stored['delay'], 1, 43200 ) : $defaults[ $step ]['delay'];
+	$coupon  = isset( $stored['coupon'] ) ? (bool) $stored['coupon'] : $defaults[ $step ]['coupon'];
 
 	return array(
 		'enabled' => $enabled,
 		'delay'   => (int) $delay,
+		'coupon'  => $coupon,
 	);
 }
 
@@ -636,6 +646,27 @@ function wcr_sanitize_settings( $input ) {
 
 	$clean['consent_label'] = $label;
 
+	$clean['coupon_enabled'] = ! empty( $input['coupon_enabled'] );
+
+	$type                 = isset( $input['coupon_type'] ) ? sanitize_key( $input['coupon_type'] ) : (string) $current['coupon_type'];
+	$clean['coupon_type'] = in_array( $type, array( 'percent', 'fixed' ), true ) ? $type : 'percent';
+
+	$amount = isset( $input['coupon_amount'] ) ? (float) $input['coupon_amount'] : (float) $current['coupon_amount'];
+
+	if ( $amount < 0 ) {
+		$amount = 0.0;
+	}
+
+	// Percentage discounts cannot exceed 100; fixed amounts are left to the store owner.
+	if ( 'percent' === $clean['coupon_type'] && $amount > 100 ) {
+		$amount = 100.0;
+	}
+
+	$clean['coupon_amount'] = round( $amount, 2 );
+
+	$validity                      = isset( $input['coupon_validity_days'] ) ? absint( $input['coupon_validity_days'] ) : (int) $current['coupon_validity_days'];
+	$clean['coupon_validity_days'] = wcr_clamp( $validity, 1, 365 );
+
 	$step_defaults  = wcr_step_defaults();
 	$clean['steps'] = array();
 
@@ -645,6 +676,7 @@ function wcr_sanitize_settings( $input ) {
 		$clean['steps'][ $step ] = array(
 			'enabled' => ! empty( $in['enabled'] ),
 			'delay'   => wcr_clamp( isset( $in['delay'] ) ? absint( $in['delay'] ) : $step_defaults[ $step ]['delay'], 1, 43200 ),
+			'coupon'  => ! empty( $in['coupon'] ),
 		);
 	}
 

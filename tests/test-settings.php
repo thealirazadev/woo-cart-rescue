@@ -129,4 +129,80 @@ class WCR_Test_Settings extends TestCase {
 		$this->assertSame( 43200, $clean['steps'][2]['delay'] );
 		$this->assertSame( 1, $clean['steps'][3]['delay'] );
 	}
+
+	/**
+	 * The coupon feature is off by default and mirrors the checkbox.
+	 *
+	 * @return void
+	 */
+	public function test_coupon_enabled_reflects_checkbox_presence() {
+		$this->assertFalse( wcr_sanitize_settings( array() )['coupon_enabled'] );
+		$this->assertTrue( wcr_sanitize_settings( array( 'coupon_enabled' => '1' ) )['coupon_enabled'] );
+	}
+
+	/**
+	 * The discount type is whitelisted; unknown values fall back to percentage.
+	 *
+	 * @return void
+	 */
+	public function test_coupon_type_is_whitelisted() {
+		$this->assertSame( 'fixed', wcr_sanitize_settings( array( 'coupon_type' => 'fixed' ) )['coupon_type'] );
+		$this->assertSame( 'percent', wcr_sanitize_settings( array( 'coupon_type' => 'percent' ) )['coupon_type'] );
+		$this->assertSame( 'percent', wcr_sanitize_settings( array( 'coupon_type' => 'nonsense' ) )['coupon_type'] );
+	}
+
+	/**
+	 * Percentage discounts are capped at 100; fixed amounts are not.
+	 *
+	 * @return void
+	 */
+	public function test_coupon_amount_bounds_depend_on_type() {
+		$percent = wcr_sanitize_settings(
+			array(
+				'coupon_type'   => 'percent',
+				'coupon_amount' => 150,
+			)
+		);
+		$this->assertSame( 100.0, $percent['coupon_amount'] );
+
+		$fixed = wcr_sanitize_settings(
+			array(
+				'coupon_type'   => 'fixed',
+				'coupon_amount' => 150,
+			)
+		);
+		$this->assertSame( 150.0, $fixed['coupon_amount'] );
+
+		$negative = wcr_sanitize_settings( array( 'coupon_amount' => -5 ) );
+		$this->assertSame( 0.0, $negative['coupon_amount'] );
+	}
+
+	/**
+	 * The coupon validity window is bounded to 1..365 days.
+	 *
+	 * @return void
+	 */
+	public function test_coupon_validity_days_bounded() {
+		$this->assertSame( 1, wcr_sanitize_settings( array( 'coupon_validity_days' => 0 ) )['coupon_validity_days'] );
+		$this->assertSame( 365, wcr_sanitize_settings( array( 'coupon_validity_days' => 5000 ) )['coupon_validity_days'] );
+	}
+
+	/**
+	 * Each step carries a sanitized coupon toggle.
+	 *
+	 * @return void
+	 */
+	public function test_step_coupon_toggle_is_sanitized() {
+		$clean = wcr_sanitize_settings(
+			array(
+				'steps' => array(
+					1 => array( 'coupon' => '1' ),
+					2 => array(),
+				),
+			)
+		);
+
+		$this->assertTrue( $clean['steps'][1]['coupon'] );
+		$this->assertFalse( $clean['steps'][2]['coupon'] );
+	}
 }
