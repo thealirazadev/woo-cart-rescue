@@ -6,7 +6,7 @@ Tested up to: 6.6
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 10.9
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: MIT
 License URI: https://opensource.org/license/mit/
 
@@ -58,6 +58,9 @@ Version 1 targets the classic shortcode checkout for the guest consent field. Bl
 Coupons are off by default. When you enable them and switch on the coupon toggle for a step, each send of that step generates its own unique WooCommerce coupon with a usage limit of one and an expiry set from the validity window you choose. The code appears in the email through the {coupon_code} merge tag and is applied to the cart automatically when the shopper follows the restore link. Expired auto-generated coupons are removed by the daily cleanup.
 
 == Changelog ==
+
+= 1.1.0 =
+* Optional auto-generated recovery coupons: a unique, single-use, expiring WooCommerce coupon per send, exposed through the {coupon_code} email merge tag and applied automatically when the restore link is followed. Expired coupons are removed by the retention cleanup.
 
 = 1.0.0 =
 * Initial release: consent-gated capture, abandonment detection, three-step recovery sequence, signed restore and unsubscribe links, recovery attribution and reporting, and the GDPR data lifecycle.

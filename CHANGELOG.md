@@ -7,8 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-07-27
+
 ### Added
 
+- Optional auto-generated recovery coupons: when the feature is enabled and a step's coupon toggle
+  is on, each send mints a unique, single-use WooCommerce coupon with an expiry set from a
+  configurable validity window, exposes it through a `{coupon_code}` email merge tag, and applies it
+  automatically when the restore link is followed. Expired auto-generated coupons are removed by the
+  retention cleanup. Adds a `coupon_code` column to `wcr_sends` via a versioned migration.
 - Contributor guide, code of conduct (Contributor Covenant 2.1), issue and pull request templates,
   and an `.editorconfig` matching the WordPress Coding Standards used here.
 
@@ -39,5 +46,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   exporter and eraser, a suggested privacy-policy snippet, and a clean uninstall.
 - HPOS (custom order tables) compatibility.
 
-[Unreleased]: https://github.com/thealirazadev/woo-cart-rescue/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/thealirazadev/woo-cart-rescue/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/thealirazadev/woo-cart-rescue/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/thealirazadev/woo-cart-rescue/releases/tag/v1.0.0

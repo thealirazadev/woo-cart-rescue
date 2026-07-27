@@ -3,7 +3,7 @@
  * Plugin Name: WooCommerce Cart Rescue
  * Plugin URI:  https://github.com/thealirazadev/woo-cart-rescue
  * Description: Consent-gated abandoned cart recovery for WooCommerce with signed restore links, a race-safe email sequence, and a GDPR data lifecycle.
- * Version:     1.0.0
+ * Version:     1.1.0
  * Requires at least: 6.4
  * Requires PHP: 8.1
  * WC requires at least: 8.0
@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'WCR_VERSION', '1.0.0' );
+define( 'WCR_VERSION', '1.1.0' );
 define( 'WCR_PATH', plugin_dir_path( __FILE__ ) );
 define( 'WCR_URL', plugin_dir_url( __FILE__ ) );
 
