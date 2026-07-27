@@ -96,7 +96,13 @@ class WCR_Sender {
 			return;
 		}
 
-		$sent = $this->dispatch( $send, $cart, $token['token'] );
+		$coupon = array(
+			'code'  => $coupon_code,
+			'offer' => ( '' !== $coupon_code ) ? wcr_format_coupon_offer( $settings, (string) $cart->currency ) : '',
+			'days'  => wcr_clamp( isset( $settings['coupon_validity_days'] ) ? $settings['coupon_validity_days'] : 7, 1, 365 ),
+		);
+
+		$sent = $this->dispatch( $send, $cart, $token['token'], $coupon );
 
 		if ( $sent ) {
 			$this->mark( $send_id, 'sent', $now );
@@ -154,12 +160,13 @@ class WCR_Sender {
 	/**
 	 * Builds the email context and dispatches through the recovery email class.
 	 *
-	 * @param object $send  Send row.
-	 * @param object $cart  Cart row.
-	 * @param string $token Full token string.
+	 * @param object $send   Send row.
+	 * @param object $cart   Cart row.
+	 * @param string $token  Full token string.
+	 * @param array  $coupon Coupon context: code, offer, days.
 	 * @return bool
 	 */
-	protected function dispatch( $send, $cart, $token ) {
+	protected function dispatch( $send, $cart, $token, $coupon = array() ) {
 		require_once WCR_PATH . 'includes/class-wcr-email-recovery.php';
 
 		if ( ! class_exists( 'WCR_Email_Recovery' ) ) {
@@ -199,6 +206,9 @@ class WCR_Sender {
 				'currency'        => (string) $cart->currency,
 				'restore_url'     => $restore_url,
 				'unsubscribe_url' => $unsubscribe_url,
+				'coupon_code'     => isset( $coupon['code'] ) ? (string) $coupon['code'] : '',
+				'coupon_offer'    => isset( $coupon['offer'] ) ? (string) $coupon['offer'] : '',
+				'coupon_days'     => isset( $coupon['days'] ) ? (int) $coupon['days'] : 0,
 			)
 		);
 	}

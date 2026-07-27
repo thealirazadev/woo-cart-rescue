@@ -103,7 +103,7 @@ class WCR_Email_Recovery extends WC_Email {
 	/**
 	 * Sends the recovery email from a data context.
 	 *
-	 * @param array $args Render data: email, first_name, cart_contents, cart_total, currency, restore_url, unsubscribe_url.
+	 * @param array $args Render data: email, first_name, cart_contents, cart_total, currency, restore_url, unsubscribe_url, coupon_code, coupon_offer, coupon_days.
 	 * @return bool Whether the mail was accepted for delivery.
 	 */
 	public function trigger( $args ) {
@@ -119,6 +119,9 @@ class WCR_Email_Recovery extends WC_Email {
 				'currency'        => '',
 				'restore_url'     => '',
 				'unsubscribe_url' => '',
+				'coupon_code'     => '',
+				'coupon_offer'    => '',
+				'coupon_days'     => 0,
 			)
 		);
 
@@ -139,6 +142,7 @@ class WCR_Email_Recovery extends WC_Email {
 			'customer_first_name' => $first_name,
 			'site_title'          => $this->get_blogname(),
 			'cart_total'          => wp_strip_all_tags( $cart_total ),
+			'coupon_code'         => (string) $args['coupon_code'],
 		);
 
 		$this->render = array(
@@ -150,6 +154,9 @@ class WCR_Email_Recovery extends WC_Email {
 			'cart_total'      => $cart_total,
 			'restore_url'     => (string) $args['restore_url'],
 			'unsubscribe_url' => (string) $args['unsubscribe_url'],
+			'coupon_code'     => (string) $args['coupon_code'],
+			'coupon_offer'    => (string) $args['coupon_offer'],
+			'coupon_days'     => (int) $args['coupon_days'],
 			'button_color'    => get_option( 'woocommerce_email_base_color', '#7f54b3' ),
 		);
 
