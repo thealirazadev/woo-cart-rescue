@@ -548,6 +548,65 @@ function wcr_get_send( $send_id ) {
 }
 
 /**
+ * Creates a unique, single-use, expiring WooCommerce coupon for a send.
+ *
+ * The generated coupon carries the configured discount, a usage limit of one,
+ * and an expiry set from the validity window. It is tagged with the
+ * `_wcr_auto_generated` meta so the retention cleanup can find and delete it.
+ *
+ * @param int   $send_id  Send row id, stored on the coupon for auditing.
+ * @param array $settings Plugin settings supplying type, amount, and validity.
+ * @return string The coupon code on success, or an empty string when disabled,
+ *                misconfigured, or the coupon could not be created.
+ */
+function wcr_generate_recovery_coupon( $send_id, $settings ) {
+	if ( ! class_exists( 'WC_Coupon' ) ) {
+		wcr_log( 'error', 'The WooCommerce coupon API was unavailable while generating a recovery coupon.', array( 'send_id' => absint( $send_id ) ) );
+		return '';
+	}
+
+	$amount = isset( $settings['coupon_amount'] ) ? (float) $settings['coupon_amount'] : 0.0;
+
+	if ( $amount <= 0 ) {
+		return '';
+	}
+
+	$discount_type = ( isset( $settings['coupon_type'] ) && 'fixed' === $settings['coupon_type'] ) ? 'fixed_cart' : 'percent';
+	$validity_days = wcr_clamp( isset( $settings['coupon_validity_days'] ) ? $settings['coupon_validity_days'] : 7, 1, 365 );
+	$expires       = time() + ( $validity_days * DAY_IN_SECONDS );
+
+	try {
+		$code = 'wcr-' . bin2hex( random_bytes( 8 ) );
+	} catch ( Exception $e ) {
+		wcr_log( 'error', 'Failed to generate a coupon code.', array( 'send_id' => absint( $send_id ) ) );
+		return '';
+	}
+
+	try {
+		$coupon = new WC_Coupon();
+		$coupon->set_code( $code );
+		$coupon->set_discount_type( $discount_type );
+		$coupon->set_amount( $amount );
+		$coupon->set_usage_limit( 1 );
+		$coupon->set_date_expires( $expires );
+		$coupon->set_description( __( 'Auto-generated abandoned cart recovery coupon.', 'woo-cart-rescue' ) );
+		$coupon->update_meta_data( '_wcr_auto_generated', 'yes' );
+		$coupon->update_meta_data( '_wcr_send_id', absint( $send_id ) );
+		$coupon_id = $coupon->save();
+	} catch ( Exception $e ) {
+		wcr_log( 'error', 'Failed to create a recovery coupon.', array( 'send_id' => absint( $send_id ) ) );
+		return '';
+	}
+
+	if ( ! $coupon_id ) {
+		wcr_log( 'error', 'Recovery coupon did not persist.', array( 'send_id' => absint( $send_id ) ) );
+		return '';
+	}
+
+	return $code;
+}
+
+/**
  * Substitutes {tag} placeholders in a template string. Pure.
  *
  * Unmatched tags are left untouched. Callers supply already-resolved values,

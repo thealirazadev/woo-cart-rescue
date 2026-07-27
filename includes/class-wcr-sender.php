@@ -74,16 +74,19 @@ class WCR_Sender {
 		$ttl   = wcr_clamp( $settings['token_ttl_days'], 1, 365 ) * DAY_IN_SECONDS;
 		$token = WCR_Token::generate( $send_id, $ttl );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Store only the token hash and expiry.
+		$coupon_code = $this->should_attach_coupon( (int) $send->step, $settings ) ? wcr_generate_recovery_coupon( $send_id, $settings ) : '';
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Store only the token hash, expiry, and coupon code.
 		$stored = $wpdb->update(
 			$table,
 			array(
 				'token_hash'       => $token['hash'],
 				'token_expires_at' => gmdate( 'Y-m-d H:i:s', (int) $token['expires'] ),
+				'coupon_code'      => ( '' !== $coupon_code ) ? $coupon_code : null,
 				'updated_at'       => $now,
 			),
 			array( 'id' => $send_id ),
-			array( '%s', '%s', '%s' ),
+			array( '%s', '%s', '%s', '%s' ),
 			array( '%d' )
 		);
 
@@ -104,6 +107,26 @@ class WCR_Sender {
 			wcr_log_event( (int) $cart->id, $send_id, 'email_failed', array( 'step' => (int) $send->step ) );
 			wcr_log( 'error', 'Recovery email failed to send.', array( 'send_id' => $send_id ) );
 		}
+	}
+
+	/**
+	 * Whether this send should carry an auto-generated recovery coupon.
+	 *
+	 * Requires both the global coupon feature and the step's own coupon toggle;
+	 * either off means no coupon is generated.
+	 *
+	 * @param int   $step     Step number 1..3.
+	 * @param array $settings Plugin settings.
+	 * @return bool
+	 */
+	protected function should_attach_coupon( $step, $settings ) {
+		if ( empty( $settings['coupon_enabled'] ) ) {
+			return false;
+		}
+
+		$config = wcr_get_step_config( $step );
+
+		return ! empty( $config['coupon'] );
 	}
 
 	/**
