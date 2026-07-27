@@ -139,6 +139,7 @@ automatically when the restore link is followed (an expired or missing coupon is
 never surfacing a discount error). Expired auto-generated coupons are deleted by the daily retention
 job. Rejected: a single shared static coupon linked in every email. It cannot be single-use, cannot
 be tied to one shopper, leaks across the web the moment one recipient posts it, and cannot expire
-per send — the per-send generated coupon gives each reminder its own disposable, expiring incentive.
+per send. The per-send generated coupon instead gives each reminder its own disposable, expiring
+incentive.
 Rejected too: discounting every step, which trains shoppers to abandon on purpose; the default
 attaches a coupon only to the final reminder.
