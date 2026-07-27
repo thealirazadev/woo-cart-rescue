@@ -5,7 +5,7 @@
 - Unit tests (pure PHP, no WordPress load): `WCR_Token` (sign, parse, verify, tamper, expiry
   boundary), merge-tag substitution, settings sanitization/clamping. Fast, run on every change.
 - Integration tests (WP test suite + WooCommerce loaded): everything that touches the tables,
-  hooks, or Action Scheduler —
+  hooks, or Action Scheduler -
   - capture: consent gating (guest without consent writes nothing), upsert-by-session-key,
     AJAX nonce/email/consent rejection;
   - abandonment: sweep eligibility rules, activity resets to active and cancels sends,
@@ -24,7 +24,7 @@
 ## Environment and commands
 
 Outbound mail in the dev site goes to a local mail catcher (Mailpit) or a mail-logging dev
-plugin — dev environment only, never a dependency of the shipped plugin.
+plugin - dev environment only, never a dependency of the shipped plugin.
 
 ```
 composer install          # dev tooling (exact-pinned, lockfile committed)
@@ -42,8 +42,8 @@ suite runs before any commit.
 ## Provisioning the WordPress test environment
 
 `@wordpress/env` provisions this, but it is not required and nothing in the suite depends on it.
-The suite needs exactly three things — a WordPress core checkout, the WordPress core test library,
-and a MySQL/MariaDB server — and they can be installed directly, which is what CI does:
+The suite needs exactly three things - a WordPress core checkout, the WordPress core test library,
+and a MySQL/MariaDB server - and they can be installed directly, which is what CI does:
 
 ```bash
 WP_VERSION=6.8.2

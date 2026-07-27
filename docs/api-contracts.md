@@ -1,7 +1,7 @@
 # API Contracts: woo-cart-rescue
 
 Agreed before any code is written. The plugin exposes two token-authenticated frontend GET
-endpoints (query-var based, handled at `template_redirect` — no rewrite rules to flush) and one
+endpoints (query-var based, handled at `template_redirect` - no rewrite rules to flush) and one
 AJAX route. The settings tab uses the core Settings API (`options.php`) and the report is
 server-rendered; neither adds a custom route.
 
@@ -40,7 +40,7 @@ log-only):
 4. Load the `wcr_sends` row by `send_id`; must exist and `sha256(token)` must equal its stored
    `token_hash` (`unknown_send`).
 5. `token_used_at` must be null (`already_used`).
-6. Load the cart row; status must be `abandoned` or `active` (`wrong_state` — covers recovered,
+6. Load the cart row; status must be `abandoned` or `active` (`wrong_state` - covers recovered,
    completed, unsubscribed, anonymized).
 7. Cart contents JSON must decode to a non-empty item list (`empty_cart`).
 
@@ -52,7 +52,7 @@ Success behavior:
   `restore_used` written.
 - WC session keys set: `wcr_recovery_cart_id`, `wcr_recovery_send_id`,
   `wcr_recovery_expires = now + attribution_window`.
-- Response: `302 Location: {checkout_url}` with a notice "We saved your cart — you can finish
+- Response: `302 Location: {checkout_url}` with a notice "We saved your cart - you can finish
   checking out below."
 
 Failure behavior (all validation failures):
@@ -68,10 +68,10 @@ GET {home_url}/?wcr_action=unsubscribe&wcr_token={token}
 ```
 
 - Auth: token signature only. By design, expiry (step 3 above) and single-use (step 5) are NOT
-  enforced — an unsubscribe request must always work, even from an old email. Validation runs
+  enforced - an unsubscribe request must always work, even from an old email. Validation runs
   steps 1, 2, 4, then loads the cart.
 
-Success behavior (idempotent — repeating it changes nothing and shows the same page):
+Success behavior (idempotent - repeating it changes nothing and shows the same page):
 
 - Cart status `unsubscribed`; pending `wcr_sends` rows `cancelled`; matching
   `wcr_send_step` actions unscheduled; `sha256(lowercased email)` inserted into `wcr_optouts`
@@ -103,14 +103,14 @@ Request fields:
 | `email` | yes | passes `is_email` after unslash + sanitize |
 | `consent` | yes | must be the string `1`; anything else is rejected server-side |
 
-Success — `200`:
+Success - `200`:
 
 ```json
 { "success": true, "data": { "captured": true } }
 ```
 
 Note: an opted-out email also returns this exact success body while the server silently skips
-writing the row — the endpoint must not act as an oracle for opt-out status.
+writing the row - the endpoint must not act as an oracle for opt-out status.
 
 Errors:
 

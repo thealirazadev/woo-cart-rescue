@@ -11,7 +11,7 @@ stretch goals.
 
 ## Phase 1: Foundation, schema, and consent-gated capture
 
-Bootstrap the plugin, create the schema through the migration runner, and capture carts — with the
+Bootstrap the plugin, create the schema through the migration runner, and capture carts - with the
 consent rule enforced from the first line: no guest row without consent.
 
 ### Goal
@@ -116,7 +116,7 @@ order or unsubscribing stops everything; stale data is cleaned up; privacy tools
 - Race check: schedule a send, place the order before running the action, then run the action:
   no email, send row `cancelled`.
 - Run the same send action twice in quick succession: exactly one email.
-- Click unsubscribe on the email (even after expiry — set TTL to 1 minute and wait): confirmation
+- Click unsubscribe on the email (even after expiry - set TTL to 1 minute and wait): confirmation
   page, cart `unsubscribed`, pending sends cancelled; abandon a new cart with the same email:
   no send is ever scheduled.
 - Set retention to 0 days and run the cleanup: stale non-recovered rows deleted, recovered rows
