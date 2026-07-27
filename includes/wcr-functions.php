@@ -607,6 +607,36 @@ function wcr_generate_recovery_coupon( $send_id, $settings ) {
 }
 
 /**
+ * Formats the configured coupon discount as a short human-readable offer.
+ *
+ * Used in the recovery email to describe the incentive, for example "10% off"
+ * or "$10.00 off". Returns an empty string when the amount is not positive.
+ *
+ * @param array  $settings Plugin settings supplying type and amount.
+ * @param string $currency Currency code for a fixed-amount discount.
+ * @return string
+ */
+function wcr_format_coupon_offer( $settings, $currency = '' ) {
+	$amount = isset( $settings['coupon_amount'] ) ? (float) $settings['coupon_amount'] : 0.0;
+
+	if ( $amount <= 0 ) {
+		return '';
+	}
+
+	if ( isset( $settings['coupon_type'] ) && 'fixed' === $settings['coupon_type'] ) {
+		$value = function_exists( 'wc_price' )
+			? wp_strip_all_tags( wc_price( $amount, array( 'currency' => (string) $currency ) ) )
+			: number_format( $amount, 2 );
+	} else {
+		$formatted = function_exists( 'number_format_i18n' ) ? number_format_i18n( $amount ) : (string) $amount;
+		$value     = $formatted . '%';
+	}
+
+	/* translators: %s: discount amount, for example "10%" or "$10.00". */
+	return sprintf( __( '%s off', 'woo-cart-rescue' ), $value );
+}
+
+/**
  * Substitutes {tag} placeholders in a template string. Pure.
  *
  * Unmatched tags are left untouched. Callers supply already-resolved values,

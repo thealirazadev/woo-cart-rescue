@@ -12,6 +12,9 @@
  * @var string   $cart_total     Formatted cart total.
  * @var string   $restore_url    Signed restore link.
  * @var string   $unsubscribe_url Signed unsubscribe link.
+ * @var string   $coupon_code    Recovery coupon code, empty when none.
+ * @var string   $coupon_offer   Human-readable discount, for example "10% off".
+ * @var int      $coupon_days    Days the coupon stays valid.
  * @var string   $button_color   CTA button background color.
  */
 
@@ -61,6 +64,30 @@ do_action( 'woocommerce_email_header', $email_heading, $email ); ?>
 </table>
 
 <p><strong><?php esc_html_e( 'Cart total:', 'woo-cart-rescue' ); ?></strong> <?php echo wp_kses_post( $cart_total ); ?></p>
+
+<?php if ( '' !== $coupon_code ) : ?>
+	<table role="presentation" cellspacing="0" cellpadding="0" style="width:100%; margin:24px 0;">
+		<tr>
+			<td style="padding:16px; border:2px dashed <?php echo esc_attr( $button_color ); ?>; text-align:center;">
+				<p style="margin:0 0 4px;">
+					<?php
+					/* translators: %s: human-readable discount, for example "10% off". */
+					printf( esc_html__( 'Here is %s to help you finish up:', 'woo-cart-rescue' ), esc_html( $coupon_offer ) );
+					?>
+				</p>
+				<p style="margin:0; font-size:20px; font-weight:700; letter-spacing:1px;"><?php echo esc_html( $coupon_code ); ?></p>
+				<?php if ( $coupon_days > 0 ) : ?>
+					<p style="margin:6px 0 0; font-size:12px; color:#646970;">
+						<?php
+						/* translators: %d: number of days the coupon stays valid. */
+						printf( esc_html( _n( 'Valid for %d day. Applied automatically when you return.', 'Valid for %d days. Applied automatically when you return.', $coupon_days, 'woo-cart-rescue' ) ), (int) $coupon_days );
+						?>
+					</p>
+				<?php endif; ?>
+			</td>
+		</tr>
+	</table>
+<?php endif; ?>
 
 <table role="presentation" cellspacing="0" cellpadding="0" style="margin:24px 0;">
 	<tr>

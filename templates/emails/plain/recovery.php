@@ -11,6 +11,9 @@
  * @var string $cart_total      Formatted cart total.
  * @var string $restore_url     Signed restore link.
  * @var string $unsubscribe_url Signed unsubscribe link.
+ * @var string $coupon_code     Recovery coupon code, empty when none.
+ * @var string $coupon_offer    Human-readable discount, for example "10% off".
+ * @var int    $coupon_days     Days the coupon stays valid.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -39,6 +42,20 @@ echo "\n";
 /* translators: %s: formatted cart total. */
 printf( esc_html__( 'Cart total: %s', 'woo-cart-rescue' ), esc_html( wp_strip_all_tags( $cart_total ) ) );
 echo "\n\n";
+
+if ( '' !== $coupon_code ) {
+	/* translators: %s: human-readable discount, for example "10% off". */
+	printf( esc_html__( 'Here is %s to help you finish up:', 'woo-cart-rescue' ), esc_html( $coupon_offer ) );
+	echo ' ' . esc_html( $coupon_code ) . "\n";
+
+	if ( $coupon_days > 0 ) {
+		/* translators: %d: number of days the coupon stays valid. */
+		printf( esc_html( _n( 'Valid for %d day. Applied automatically when you return.', 'Valid for %d days. Applied automatically when you return.', $coupon_days, 'woo-cart-rescue' ) ), (int) $coupon_days );
+		echo "\n";
+	}
+
+	echo "\n";
+}
 
 esc_html_e( 'Return to your cart:', 'woo-cart-rescue' );
 echo "\n" . esc_url_raw( $restore_url ) . "\n\n";
