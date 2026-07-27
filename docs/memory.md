@@ -192,6 +192,53 @@ log every non-obvious decision WITH its reason.
   suite 68 tests / 174 assertions (was 63 / 148). No dependency added, no schema change (no
   migration). GitHub Actions green on both jobs after the push.
 
+## Phase 6: auto-generated recovery coupons (2026-07-27)
+
+- Shipped the v2 feature: optional per-step, single-use, expiring WooCommerce coupons attached to
+  recovery sends. One-feature-per-commit throughout. Gates green locally and expected green in CI:
+  PHPCS clean (31 files), PHPUnit integration suite 82 tests / 208 assertions (was 68 / 174) against
+  WP 6.8.2 + WooCommerce 10.6.2. `.pot` 87 -> 104 msgids (17 new coupon strings, none dropped). No
+  runtime or dev dependency added.
+- FLAG (PRD change): docs/PRD.md lists "No automatic coupon generation in recovery emails (backlog
+  candidate)" as a non-goal. Phase 6 promotes that backlog candidate to a shipped feature. Per the
+  "never modify docs/PRD.md without flagging" rule, PRD.md itself was left unedited; this entry and
+  the Phase 6 header in docs/phases.md record the supersession. Owner can fold it into the PRD on
+  review if desired.
+- `feat: add versioned migration for the send coupon code column` (c4ccf96). `migrate_2()` adds a
+  nullable `coupon_code VARCHAR(64)` to `wcr_sends` via dbDelta; `DB_VERSION` -> 2. Migration 1 left
+  untouched per the migration rule. Verified the column was added to the live test table.
+- `feat: add recovery coupon settings and admin fields` (98ab0b2). New settings: `coupon_enabled`
+  (default off), `coupon_type` (`percent`|`fixed`, whitelisted), `coupon_amount` (float, >= 0,
+  percentages capped at 100), `coupon_validity_days` (1..365). Each step gains a `coupon` toggle.
+  Admin "Recovery coupons" section plus a per-step coupon checkbox. Unit tests in test-settings.php.
+- `feat: generate a unique single-use coupon per coupon-enabled send` (b8a0ec9).
+  `wcr_generate_recovery_coupon()` mints a `WC_Coupon` with `usage_limit = 1`, `date_expires` from the
+  validity window, and `_wcr_auto_generated` / `_wcr_send_id` meta; code is `wcr-` + `bin2hex(random_bytes(8))`.
+  Sender attaches only when the global feature AND the step toggle are on (`should_attach_coupon`),
+  stores the code on the send row in the same update as the token hash.
+- `feat: expose the coupon code to the recovery email via a merge tag` (6fbbac0). `{coupon_code}`
+  added to the email merge context (usable in subject/heading) and an offer block renders in the HTML
+  and plain templates only when a code is present. `wcr_format_coupon_offer()` builds the human offer
+  ("10% off" / "$10.00 off").
+- `feat: apply the recovery coupon when a restore link is used` (1843a94). `apply_recovery_coupon()`
+  (public, for testability, mirroring the `apply_unsubscribe` precedent) applies the send's coupon to
+  the rebuilt cart, skipping a missing or expired coupon silently so no discount error surfaces.
+- `feat: delete expired auto-generated coupons in retention cleanup` (9e9f61b). The daily job deletes
+  expired `_wcr_auto_generated` coupons in a bounded batch of 100 and logs the count.
+- Decisions: single-use = `usage_limit = 1`; `individual_use` left default and no email restriction,
+  to avoid blocking legitimate checkout; discount types map percent -> `percent`, fixed -> `fixed_cart`.
+  Step coupon defaults: steps 1 and 2 off, step 3 on, encoding the best practice of discounting only
+  the final reminder (matters only once the master switch is enabled). Coupon code uses
+  `random_bytes` per the crypto rule (a discount code is abuse-sensitive) and is lowercase to match
+  WooCommerce coupon-code handling.
+- `uninstall.php` intentionally NOT extended to delete coupons: the retention job removes expired
+  ones, any leftover unexpired coupon is a harmless unused `shop_coupon` post, and deleting posts via
+  raw SQL during uninstall (WooCommerce may be unloaded then) adds risk for little benefit. Logged
+  rather than silently skipped.
+- Version bumped to 1.1.0 (plugin header, `WCR_VERSION`, composer.json, readme.txt Stable tag,
+  CHANGELOG). `composer.lock` content-hash refreshed with `composer update --lock` (root `version`
+  feeds the hash); no dependency versions changed.
+
 ## Decisions log
 
 - 2026-07-22 - WordPress 6.8.2 + WooCommerce 10.6.2 are pinned for the integration suite (CI and
