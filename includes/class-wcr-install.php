@@ -17,7 +17,7 @@ class WCR_Install {
 	/**
 	 * Highest migration number the current code knows how to apply.
 	 */
-	const DB_VERSION = 1;
+	const DB_VERSION = 2;
 
 	/**
 	 * Runs the full activation routine: migrations, secret, and scheduled actions.
@@ -195,5 +195,43 @@ class WCR_Install {
 		foreach ( $schemas as $schema ) {
 			dbDelta( $schema );
 		}
+	}
+
+	/**
+	 * Migration 2: adds the nullable coupon_code column to wcr_sends.
+	 *
+	 * Recovery coupons store their generated code on the send row so the restore
+	 * endpoint can apply it. dbDelta diffs the full table definition and issues
+	 * the ADD COLUMN; migration 1 is left untouched per the migration rule.
+	 *
+	 * @return void
+	 */
+	private static function migrate_2() {
+		global $wpdb;
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+		$charset_collate = $wpdb->get_charset_collate();
+		$prefix          = $wpdb->prefix;
+
+		$schema = "CREATE TABLE {$prefix}wcr_sends (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			cart_id BIGINT UNSIGNED NOT NULL,
+			step TINYINT UNSIGNED NOT NULL,
+			status VARCHAR(20) NOT NULL DEFAULT 'scheduled',
+			token_hash CHAR(64) NULL,
+			token_expires_at DATETIME NULL,
+			token_used_at DATETIME NULL,
+			coupon_code VARCHAR(64) NULL,
+			scheduled_for DATETIME NOT NULL,
+			sent_at DATETIME NULL,
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY cart_step (cart_id, step),
+			KEY status_scheduled (status, scheduled_for)
+		) {$charset_collate};";
+
+		dbDelta( $schema );
 	}
 }
