@@ -117,6 +117,18 @@ class WCR_Admin {
 				array( 'step' => $step )
 			);
 		}
+
+		add_settings_section(
+			'wcr_coupons',
+			__( 'Recovery coupons', 'woo-cart-rescue' ),
+			array( $this, 'render_coupons_intro' ),
+			self::PAGE_SECTION
+		);
+
+		add_settings_field( 'wcr_coupon_enabled', __( 'Attach recovery coupons', 'woo-cart-rescue' ), array( $this, 'field_coupon_enabled' ), self::PAGE_SECTION, 'wcr_coupons' );
+		add_settings_field( 'wcr_coupon_type', __( 'Discount type', 'woo-cart-rescue' ), array( $this, 'field_coupon_type' ), self::PAGE_SECTION, 'wcr_coupons', array( 'label_for' => 'wcr_coupon_type' ) );
+		add_settings_field( 'wcr_coupon_amount', __( 'Discount amount', 'woo-cart-rescue' ), array( $this, 'field_coupon_amount' ), self::PAGE_SECTION, 'wcr_coupons', array( 'label_for' => 'wcr_coupon_amount' ) );
+		add_settings_field( 'wcr_coupon_validity_days', __( 'Coupon validity (days)', 'woo-cart-rescue' ), array( $this, 'field_coupon_validity_days' ), self::PAGE_SECTION, 'wcr_coupons', array( 'label_for' => 'wcr_coupon_validity_days' ) );
 	}
 
 	/**
@@ -222,6 +234,12 @@ class WCR_Admin {
 			<label for="wcr_step_<?php echo esc_attr( (string) $step ); ?>_delay"><?php esc_html_e( 'Delay (minutes):', 'woo-cart-rescue' ); ?></label>
 			<input type="number" id="wcr_step_<?php echo esc_attr( (string) $step ); ?>_delay" name="wcr_settings[steps][<?php echo esc_attr( (string) $step ); ?>][delay]" min="1" max="43200" step="1" value="<?php echo esc_attr( (string) $config['delay'] ); ?>" />
 		</p>
+		<p>
+			<label for="wcr_step_<?php echo esc_attr( (string) $step ); ?>_coupon">
+				<input type="checkbox" id="wcr_step_<?php echo esc_attr( (string) $step ); ?>_coupon" name="wcr_settings[steps][<?php echo esc_attr( (string) $step ); ?>][coupon]" value="1" <?php checked( ! empty( $config['coupon'] ) ); ?> />
+				<?php esc_html_e( 'Attach a recovery coupon to this reminder', 'woo-cart-rescue' ); ?>
+			</label>
+		</p>
 		<?php
 	}
 
@@ -235,6 +253,73 @@ class WCR_Admin {
 		?>
 		<input type="text" class="regular-text" id="wcr_consent_label" name="wcr_settings[consent_label]" value="<?php echo esc_attr( (string) $settings['consent_label'] ); ?>" aria-describedby="wcr_consent_label_description" />
 		<p class="description" id="wcr_consent_label_description"><?php esc_html_e( 'Shown next to the checkout consent checkbox. Name what is stored and why.', 'woo-cart-rescue' ); ?></p>
+		<?php
+	}
+
+	/**
+	 * Renders the coupons section description.
+	 *
+	 * @return void
+	 */
+	public function render_coupons_intro() {
+		echo '<p>' . esc_html__( 'Generate a unique, single-use coupon per send and offer it in the reminder email. Choose which steps carry a coupon under Recovery email steps above.', 'woo-cart-rescue' ) . '</p>';
+	}
+
+	/**
+	 * Renders the coupon enable checkbox.
+	 *
+	 * @return void
+	 */
+	public function field_coupon_enabled() {
+		$settings = wcr_get_settings();
+		?>
+		<label for="wcr_coupon_enabled">
+			<input type="checkbox" id="wcr_coupon_enabled" name="wcr_settings[coupon_enabled]" value="1" <?php checked( ! empty( $settings['coupon_enabled'] ) ); ?> />
+			<?php esc_html_e( 'Attach a coupon to reminders that have the coupon toggle switched on.', 'woo-cart-rescue' ); ?>
+		</label>
+		<?php
+	}
+
+	/**
+	 * Renders the discount-type select.
+	 *
+	 * @return void
+	 */
+	public function field_coupon_type() {
+		$settings = wcr_get_settings();
+		$type     = ( isset( $settings['coupon_type'] ) && 'fixed' === $settings['coupon_type'] ) ? 'fixed' : 'percent';
+		?>
+		<select id="wcr_coupon_type" name="wcr_settings[coupon_type]" aria-describedby="wcr_coupon_type_description">
+			<option value="percent" <?php selected( 'percent', $type ); ?>><?php esc_html_e( 'Percentage discount', 'woo-cart-rescue' ); ?></option>
+			<option value="fixed" <?php selected( 'fixed', $type ); ?>><?php esc_html_e( 'Fixed cart discount', 'woo-cart-rescue' ); ?></option>
+		</select>
+		<p class="description" id="wcr_coupon_type_description"><?php esc_html_e( 'A percentage of the cart total, or a fixed amount in the store currency.', 'woo-cart-rescue' ); ?></p>
+		<?php
+	}
+
+	/**
+	 * Renders the discount-amount field.
+	 *
+	 * @return void
+	 */
+	public function field_coupon_amount() {
+		$settings = wcr_get_settings();
+		?>
+		<input type="number" id="wcr_coupon_amount" name="wcr_settings[coupon_amount]" min="0" step="0.01" value="<?php echo esc_attr( (string) $settings['coupon_amount'] ); ?>" aria-describedby="wcr_coupon_amount_description" />
+		<p class="description" id="wcr_coupon_amount_description"><?php esc_html_e( 'The discount value. Percentage discounts are capped at 100.', 'woo-cart-rescue' ); ?></p>
+		<?php
+	}
+
+	/**
+	 * Renders the coupon-validity field.
+	 *
+	 * @return void
+	 */
+	public function field_coupon_validity_days() {
+		$settings = wcr_get_settings();
+		?>
+		<input type="number" id="wcr_coupon_validity_days" name="wcr_settings[coupon_validity_days]" min="1" max="365" step="1" value="<?php echo esc_attr( (string) $settings['coupon_validity_days'] ); ?>" aria-describedby="wcr_coupon_validity_days_description" />
+		<p class="description" id="wcr_coupon_validity_days_description"><?php esc_html_e( 'How long each generated coupon stays valid after it is sent (1 to 365 days).', 'woo-cart-rescue' ); ?></p>
 		<?php
 	}
 
