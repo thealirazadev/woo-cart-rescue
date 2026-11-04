@@ -240,8 +240,20 @@ class WCR_Email_Recovery extends WC_Email {
 	 * @return string
 	 */
 	protected function ensure_unsubscribe_footer( $content, $unsubscribe_url ) {
-		if ( '' === $unsubscribe_url || false !== strpos( $content, $unsubscribe_url ) ) {
+		if ( '' === $unsubscribe_url ) {
 			return $content;
+		}
+
+		// Templates print the link through esc_url(), which encodes "&" as "&#038;",
+		// so look for the escaped form as well as the raw one.
+		foreach ( array( $unsubscribe_url, esc_url( $unsubscribe_url ), esc_url_raw( $unsubscribe_url ) ) as $candidate ) {
+			if ( '' !== $candidate && false !== strpos( $content, $candidate ) ) {
+				return $content;
+			}
+		}
+
+		if ( 'plain' === $this->get_email_type() ) {
+			return $content . "\n" . __( 'Unsubscribe from cart reminders:', 'woo-cart-rescue' ) . "\n" . esc_url_raw( $unsubscribe_url ) . "\n";
 		}
 
 		return $content . '<p style="font-size:12px;"><a href="' . esc_url( $unsubscribe_url ) . '">' . esc_html__( 'Unsubscribe from cart reminders', 'woo-cart-rescue' ) . '</a></p>';

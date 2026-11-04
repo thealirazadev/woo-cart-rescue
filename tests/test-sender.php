@@ -156,6 +156,23 @@ class WCR_Test_Sender extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The stock HTML template already carries the unsubscribe link, so the
+	 * fallback footer must not add a second one.
+	 *
+	 * @return void
+	 */
+	public function test_html_email_has_a_single_unsubscribe_link() {
+		list( , $send_id ) = $this->seed( 'abandoned' );
+
+		( new WCR_Sender() )->handle( $send_id );
+
+		$this->assertSame( 1, $this->sent_count() );
+		$body = $GLOBALS['phpmailer']->mock_sent[0]['body'];
+
+		$this->assertSame( 1, substr_count( $body, 'Unsubscribe from cart reminders' ) );
+	}
+
+	/**
 	 * Running the same send twice produces exactly one email.
 	 *
 	 * @return void
