@@ -15,12 +15,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WCR_Orders {
 
 	/**
-	 * Registers the order hook.
+	 * Registers the order hooks for the classic and block checkouts.
+	 *
+	 * The block checkout goes through the Store API, which never fires the
+	 * classic hook, so without the second hook its orders left the sequence
+	 * running and were never attributed.
 	 *
 	 * @return void
 	 */
 	public function register() {
 		add_action( 'woocommerce_checkout_order_processed', array( $this, 'on_order_processed' ), 10, 1 );
+		add_action( 'woocommerce_store_api_checkout_order_processed', array( $this, 'on_order_processed' ), 10, 1 );
 	}
 
 	/**
@@ -29,7 +34,7 @@ class WCR_Orders {
 	 * The cart status is moved off abandoned before sends are cancelled so an
 	 * in-flight worker's recheck sees the completed state and does not mail.
 	 *
-	 * @param int $order_id Order id.
+	 * @param int|WC_Order $order_id Order id, or the order object from the Store API hook.
 	 * @return void
 	 */
 	public function on_order_processed( $order_id ) {
@@ -42,6 +47,8 @@ class WCR_Orders {
 		if ( ! $order ) {
 			return;
 		}
+
+		$order_id = $order->get_id();
 
 		$recovery = $this->get_recovery_session();
 

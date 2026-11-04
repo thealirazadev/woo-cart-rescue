@@ -285,4 +285,32 @@ class WCR_Test_Orders extends WP_UnitTestCase {
 		$step_three = $wpdb->get_var( $wpdb->prepare( "SELECT status FROM {$table} WHERE cart_id = %d AND step = %d", $cart_id, 3 ) );
 		$this->assertSame( 'cancelled', $step_three );
 	}
+
+	/**
+	 * A block checkout order (Store API hook, order object) also stops the sequence.
+	 *
+	 * @return void
+	 */
+	public function test_block_checkout_order_cancels_sequence() {
+		if ( ! function_exists( 'wc_create_order' ) ) {
+			$this->markTestSkipped( 'WooCommerce order helpers unavailable.' );
+		}
+
+		list( $cart_id, $send_id ) = $this->seed( 'block-buyer@example.com' );
+
+		$order = wc_create_order();
+		$order->set_billing_email( 'block-buyer@example.com' );
+		$order->save();
+
+		$orders = new WCR_Orders();
+		$orders->register();
+
+		do_action( 'woocommerce_store_api_checkout_order_processed', $order );
+
+		remove_action( 'woocommerce_checkout_order_processed', array( $orders, 'on_order_processed' ), 10 );
+		remove_action( 'woocommerce_store_api_checkout_order_processed', array( $orders, 'on_order_processed' ), 10 );
+
+		$this->assertSame( 'completed', wcr_get_cart( $cart_id )->status );
+		$this->assertSame( 'cancelled', wcr_get_send( $send_id )->status );
+	}
 }
