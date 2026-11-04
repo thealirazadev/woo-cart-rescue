@@ -382,8 +382,8 @@ class WCR_Admin {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only date filter on a capability-gated admin page.
 		$to = isset( $_GET['wcr_to'] ) ? sanitize_text_field( wp_unslash( $_GET['wcr_to'] ) ) : '';
 
-		$from = $this->normalize_date( $from, gmdate( 'Y-m-d', time() - ( 30 * DAY_IN_SECONDS ) ) );
-		$to   = $this->normalize_date( $to, gmdate( 'Y-m-d' ) );
+		$from = $this->normalize_date( $from, wp_date( 'Y-m-d', time() - ( 30 * DAY_IN_SECONDS ) ) );
+		$to   = $this->normalize_date( $to, wp_date( 'Y-m-d' ) );
 
 		$data = $this->get_report_data( $from, $to );
 		?>
@@ -457,7 +457,26 @@ class WCR_Admin {
 	}
 
 	/**
+	 * Converts a site-local MySQL datetime to UTC.
+	 *
+	 * @param string $local Datetime in the site timezone, Y-m-d H:i:s.
+	 * @return string UTC datetime, Y-m-d H:i:s.
+	 */
+	protected function local_to_utc( $local ) {
+		try {
+			$date = new DateTimeImmutable( $local, wp_timezone() );
+		} catch ( Exception $e ) {
+			return $local;
+		}
+
+		return $date->setTimezone( new DateTimeZone( 'UTC' ) )->format( 'Y-m-d H:i:s' );
+	}
+
+	/**
 	 * Aggregates report figures for a date range.
+	 *
+	 * The dates are days in the site timezone; stored timestamps are UTC, so the
+	 * day boundaries are converted before querying.
 	 *
 	 * @param string $from Start date Y-m-d.
 	 * @param string $to   End date Y-m-d.
@@ -470,8 +489,8 @@ class WCR_Admin {
 		$sends  = wcr_table( 'sends' );
 		$events = wcr_table( 'events' );
 
-		$start = $from . ' 00:00:00';
-		$end   = $to . ' 23:59:59';
+		$start = $this->local_to_utc( $from . ' 00:00:00' );
+		$end   = $this->local_to_utc( $to . ' 23:59:59' );
 
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted whitelisted table names; values are prepared.
 		$abandoned = (int) $wpdb->get_var(

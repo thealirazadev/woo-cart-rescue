@@ -93,4 +93,43 @@ class WCR_Test_Report extends WP_UnitTestCase {
 		$this->assertFalse( $data['has_data'] );
 		$this->assertSame( 0, $data['recovered'] );
 	}
+
+	/**
+	 * Report days follow the site timezone, not UTC.
+	 *
+	 * @return void
+	 */
+	public function test_report_range_uses_site_timezone() {
+		global $wpdb;
+
+		update_option( 'timezone_string', 'Asia/Tokyo' );
+
+		// 20:00 UTC on Jan 1 is 05:00 on Jan 2 in Tokyo (UTC+9).
+		$utc = '2026-01-01 20:00:00';
+
+		$wpdb->insert(
+			wcr_table( 'carts' ),
+			array(
+				'cart_key'           => 'key-report-tz',
+				'email'              => 'tz@example.com',
+				'consent'            => 1,
+				'cart_total'         => 30.0,
+				'currency'           => 'USD',
+				'status'             => 'recovered',
+				'recovered_order_id' => 456,
+				'recovered_total'    => 30.0,
+				'recovered_at'       => $utc,
+				'last_activity_at'   => $utc,
+				'created_at'         => $utc,
+				'updated_at'         => $utc,
+			)
+		);
+
+		$admin = new WCR_Admin();
+
+		$this->assertSame( 1, $admin->get_report_data( '2026-01-02', '2026-01-02' )['recovered'] );
+		$this->assertSame( 0, $admin->get_report_data( '2026-01-01', '2026-01-01' )['recovered'] );
+
+		delete_option( 'timezone_string' );
+	}
 }
