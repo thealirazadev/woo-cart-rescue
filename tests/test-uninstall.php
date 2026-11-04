@@ -71,4 +71,24 @@ class WCR_Test_Uninstall extends WP_UnitTestCase {
 		$this->assertFalse( get_option( 'wcr_db_version' ) );
 		$this->assertFalse( get_option( 'wcr_settings' ) );
 	}
+
+	/**
+	 * Uninstall cancels pending per-send actions, not only the recurring jobs.
+	 *
+	 * @return void
+	 */
+	public function test_uninstall_unschedules_pending_send_actions() {
+		as_schedule_single_action( time() + HOUR_IN_SECONDS, 'wcr_send_step', array( 4242 ), 'woo-cart-rescue' );
+		$this->assertNotFalse( as_next_scheduled_action( 'wcr_send_step', array( 4242 ), 'woo-cart-rescue' ) );
+
+		if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
+			define( 'WP_UNINSTALL_PLUGIN', 'woo-cart-rescue/woo-cart-rescue.php' );
+		}
+
+		require dirname( __DIR__ ) . '/uninstall.php';
+
+		$this->assertFalse( as_next_scheduled_action( 'wcr_send_step' ) );
+		$this->assertFalse( as_next_scheduled_action( 'wcr_abandonment_sweep' ) );
+		$this->assertFalse( as_next_scheduled_action( 'wcr_retention_cleanup' ) );
+	}
 }

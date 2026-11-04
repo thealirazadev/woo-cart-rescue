@@ -34,8 +34,10 @@ foreach ( $wcr_options as $wcr_option ) {
 
 delete_transient( 'wcr_activation_blocked' );
 
+// Cancel by hook alone: passing args or a group makes Action Scheduler match
+// an exact args list, which would leave every per-send wcr_send_step behind.
 if ( function_exists( 'as_unschedule_all_actions' ) ) {
 	foreach ( array( 'wcr_abandonment_sweep', 'wcr_send_step', 'wcr_retention_cleanup' ) as $wcr_hook ) {
-		as_unschedule_all_actions( $wcr_hook, array(), 'woo-cart-rescue' );
+		as_unschedule_all_actions( $wcr_hook );
 	}
 }
