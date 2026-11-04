@@ -231,6 +231,37 @@ class WCR_Test_Capture extends WP_Ajax_UnitTestCase {
 	}
 
 	/**
+	 * A signed-in shopper who ticks the consent box keeps the user link on the row.
+	 *
+	 * @return void
+	 */
+	public function test_ajax_capture_keeps_user_id_for_logged_in_shopper() {
+		$this->assertTrue( $this->seed_cart(), 'The test product could not be added to the cart.' );
+
+		$user_id = self::factory()->user->create(
+			array(
+				'user_email' => 'signed-in@example.com',
+				'role'       => 'customer',
+			)
+		);
+		wp_set_current_user( $user_id );
+
+		$_POST['nonce']   = wp_create_nonce( 'wcr_capture' );
+		$_POST['email']   = 'billing@example.com';
+		$_POST['consent'] = '1';
+
+		$response = $this->dispatch_capture();
+
+		$this->assertTrue( $response['success'] );
+
+		$row = wcr_get_cart_by_key( (string) WC()->session->get_customer_id() );
+
+		$this->assertNotNull( $row );
+		$this->assertSame( $user_id, (int) $row->user_id );
+		$this->assertSame( 'billing@example.com', $row->email );
+	}
+
+	/**
 	 * Dispatches the capture AJAX action and returns the decoded response.
 	 *
 	 * @return array

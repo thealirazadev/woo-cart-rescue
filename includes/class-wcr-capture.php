@@ -156,8 +156,9 @@ class WCR_Capture {
 		}
 
 		// Opted-out addresses get the same success response but no row is written.
+		// A signed-in shopper can tick the box too; keep the user link on their row.
 		if ( ! wcr_is_opted_out( $email ) ) {
-			$this->upsert( $email, 0, true );
+			$this->upsert( $email, get_current_user_id(), true );
 		}
 
 		wp_send_json_success( array( 'captured' => true ) );
