@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Orders placed through the block checkout now stop the recovery sequence and are attributed,
+  like classic checkout orders.
+- Uninstall now cancels pending per-send `wcr_send_step` actions, not only the recurring jobs.
+- A signed-in shopper who ticks the consent box keeps the user link on their cart row.
+- HTML recovery emails no longer show the unsubscribe link twice.
+- Report date ranges are read as days in the site timezone instead of UTC.
+
 ## [1.1.0] - 2026-07-27
 
 ### Added
