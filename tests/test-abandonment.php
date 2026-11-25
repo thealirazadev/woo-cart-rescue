@@ -138,7 +138,7 @@ class WCR_Test_Abandonment extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Opted-out emails are never abandoned.
+	 * Opted-out emails are never abandoned; the row is closed so it leaves the sweep.
 	 *
 	 * @return void
 	 */
@@ -156,8 +156,65 @@ class WCR_Test_Abandonment extends WP_UnitTestCase {
 
 		( new WCR_Abandonment() )->sweep();
 
-		$this->assertSame( 'active', $this->status_of( $cart_id ) );
+		$this->assertSame( 'unsubscribed', $this->status_of( $cart_id ) );
 		$this->assertSame( 0, $this->count_sends( $cart_id ) );
+	}
+
+	/**
+	 * A cart whose customer has ordered since it was created is completed, not mailed.
+	 *
+	 * @return void
+	 */
+	public function test_cart_with_later_order_is_completed() {
+		if ( ! function_exists( 'wc_create_order' ) ) {
+			$this->markTestSkipped( 'WooCommerce order helpers unavailable.' );
+		}
+
+		$cart_id = $this->seed_cart();
+
+		$order = wc_create_order();
+		$order->set_billing_email( 'shopper@example.com' );
+		$order->save();
+
+		( new WCR_Abandonment() )->sweep();
+
+		$this->assertSame( 'completed', $this->status_of( $cart_id ) );
+		$this->assertSame( 0, $this->count_sends( $cart_id ) );
+	}
+
+	/**
+	 * A full batch of unmailable carts at the head of the scan cannot starve newer carts.
+	 *
+	 * @return void
+	 */
+	public function test_unmailable_backlog_does_not_starve_newer_carts() {
+		global $wpdb;
+		$wpdb->insert(
+			wcr_table( 'optouts' ),
+			array(
+				'email_hash' => wcr_email_hash( 'gone@example.com' ),
+				'created_at' => wcr_now(),
+			)
+		);
+
+		$oldest = gmdate( 'Y-m-d H:i:s', time() - ( 3 * HOUR_IN_SECONDS ) );
+
+		for ( $i = 0; $i < WCR_Abandonment::BATCH; $i++ ) {
+			$this->seed_cart(
+				array(
+					'email'            => 'gone@example.com',
+					'last_activity_at' => $oldest,
+				)
+			);
+		}
+
+		$eligible = $this->seed_cart();
+
+		( new WCR_Abandonment() )->sweep();
+		( new WCR_Abandonment() )->sweep();
+
+		$this->assertSame( 'abandoned', $this->status_of( $eligible ) );
+		$this->assertSame( 1, $this->count_sends( $eligible ) );
 	}
 
 	/**
