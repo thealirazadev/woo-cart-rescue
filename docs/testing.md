@@ -93,9 +93,24 @@ Notes:
 Useful manual levers while testing timing: set the idle window and step delays to 1-2 minutes in
 settings, and run due actions immediately from Tools > Scheduled Actions instead of waiting.
 
-## The rule
+## CI
 
-After creating or editing files, run the build and tests (`composer run lint` and
-`composer run test`) and fix all errors BEFORE reporting done. A phase is not complete while
-either command fails or while the WooCommerce log (source `woo-cart-rescue`) shows unexpected
-warnings from the manual checklist.
+`.github/workflows/ci.yml` runs on every push to `main` and every pull request targeting `main`,
+with PHP 8.2 on Ubuntu, in two jobs:
+
+- **Lint and tests (PHP 8.2)**: `composer install`, `composer run lint` (PHPCS), a `php -l` syntax
+  pass over every PHP file outside `vendor/`, and `composer run test` in unit mode (no
+  `WP_TESTS_DIR`), which keeps the stub path covered.
+- **Integration tests (WordPress + WooCommerce)**: a `mariadb:11.4` service with a `wordpress_test`
+  database, WordPress 6.8.2 core and its test library from the `wordpress-develop` tag archive,
+  WooCommerce 10.6.2, and then `composer run test` with `WP_TESTS_DIR` and `WCR_TESTS_WOOCOMMERCE`
+  set, so the whole suite runs. These are the same steps as the provisioning section above.
+
+Not in CI: `composer run build` (needs wp-cli's dist-archive command) and the manual QA listed under
+Strategy.
+
+## Before merging
+
+Run `composer run lint` and `composer run test` and fix every failure. For changes to tables, hooks,
+or the scheduler, run the suite in integration mode, and check that the WooCommerce log (source
+`woo-cart-rescue`) shows no unexpected warnings while you exercise the change manually.
