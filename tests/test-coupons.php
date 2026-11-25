@@ -302,4 +302,33 @@ class WCR_Test_Coupons extends WP_UnitTestCase {
 		$this->assertNull( get_post( $expired_id ) );
 		$this->assertNotNull( get_post( $live_id ) );
 	}
+
+	/**
+	 * Expired coupons are reached even when more than a batch of newer coupons is still live.
+	 *
+	 * @return void
+	 */
+	public function test_cleanup_reaches_expired_coupons_behind_live_ones() {
+		$expired = new WC_Coupon();
+		$expired->set_code( 'wcr-old-' . wp_generate_password( 6, false ) );
+		$expired->set_amount( 10 );
+		$expired->set_date_created( time() - ( 10 * DAY_IN_SECONDS ) );
+		$expired->set_date_expires( time() - DAY_IN_SECONDS );
+		$expired->update_meta_data( '_wcr_auto_generated', 'yes' );
+		$expired->save();
+		$expired_id = $expired->get_id();
+
+		for ( $i = 0; $i < 101; $i++ ) {
+			$live = new WC_Coupon();
+			$live->set_code( 'wcr-live-' . $i . '-' . wp_generate_password( 6, false ) );
+			$live->set_amount( 10 );
+			$live->set_date_expires( time() + ( 7 * DAY_IN_SECONDS ) );
+			$live->update_meta_data( '_wcr_auto_generated', 'yes' );
+			$live->save();
+		}
+
+		( new WCR_Privacy() )->cleanup();
+
+		$this->assertNull( get_post( $expired_id ) );
+	}
 }

@@ -288,6 +288,22 @@ class WCR_Capture {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted whitelisted table name; value is prepared.
 		$existing = $wpdb->get_row( $wpdb->prepare( "SELECT id, status FROM {$table} WHERE cart_key = %s", $cart_key ) );
 
+		// cart_key is unique and stays the same across orders (a logged-in customer's key is
+		// their user id), so a finished row would otherwise absorb every later cart and never
+		// become active again. Move it to an archived key, keeping its history and recovered
+		// revenue, and start a new row for the new cart.
+		if ( $existing && in_array( $existing->status, array( 'completed', 'recovered', 'anonymized' ), true ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted whitelisted table name; values are prepared.
+			$archived = $wpdb->query( $wpdb->prepare( "UPDATE {$table} SET cart_key = %s, updated_at = %s WHERE id = %d", $cart_key . '#' . absint( $existing->id ), $now, absint( $existing->id ) ) );
+
+			if ( false === $archived ) {
+				wcr_log( 'error', 'Failed to archive a finished cart row.', array( 'cart_id' => absint( $existing->id ) ) );
+				return 0;
+			}
+
+			$existing = null;
+		}
+
 		if ( $existing ) {
 			$data   = array(
 				'user_id'          => $user_id ? absint( $user_id ) : null,

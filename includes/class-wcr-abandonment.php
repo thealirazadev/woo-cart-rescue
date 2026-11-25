@@ -68,6 +68,11 @@ class WCR_Abandonment {
 	/**
 	 * Applies the remaining eligibility rules and abandons one cart.
 	 *
+	 * A cart that can never be mailed (opted-out address, or the customer has
+	 * ordered since) is closed instead of left active. Left active, it would be
+	 * re-read by every sweep, and a backlog of BATCH such rows at the head of the
+	 * oldest-first scan would keep every newer cart from ever being abandoned.
+	 *
 	 * @param object $cart Cart row.
 	 * @return void
 	 */
@@ -79,10 +84,12 @@ class WCR_Abandonment {
 		}
 
 		if ( wcr_is_opted_out( $cart->email ) ) {
+			$this->close( $cart, 'unsubscribed', 'unsubscribed' );
 			return;
 		}
 
 		if ( $this->has_order_since( $cart->email, (int) $cart->user_id, (string) $cart->created_at ) ) {
+			$this->close( $cart, 'completed', 'order_completed' );
 			return;
 		}
 
@@ -110,6 +117,37 @@ class WCR_Abandonment {
 		wcr_log_event( (int) $cart->id, null, 'abandoned' );
 
 		$this->schedule_next_step( (int) $cart->id, $now );
+	}
+
+	/**
+	 * Moves a still-active cart that can never be mailed to a terminal status.
+	 *
+	 * @param object $cart   Cart row.
+	 * @param string $status Terminal status: unsubscribed or completed.
+	 * @param string $event  Event type to record.
+	 * @return void
+	 */
+	protected function close( $cart, $status, $event ) {
+		global $wpdb;
+
+		$table = wcr_table( 'carts' );
+		$now   = wcr_now();
+
+		// Same guard as abandonment: concurrent activity on the row wins.
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted whitelisted table name; values are prepared.
+		$updated = $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$table} SET status = %s, updated_at = %s WHERE id = %d AND status = 'active'",
+				$status,
+				$now,
+				absint( $cart->id )
+			)
+		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		if ( $updated ) {
+			wcr_log_event( (int) $cart->id, null, $event, array( 'source' => 'sweep' ) );
+		}
 	}
 
 	/**

@@ -151,6 +151,48 @@ class WCR_Test_Capture extends WP_Ajax_UnitTestCase {
 	}
 
 	/**
+	 * A session whose row has finished starts a new row and keeps the old one intact.
+	 *
+	 * @return void
+	 */
+	public function test_finished_row_is_archived_and_new_cart_tracked() {
+		$this->assertTrue( $this->seed_cart(), 'The test product could not be added to the cart.' );
+
+		$capture = new WCR_Capture();
+		$first   = $capture->upsert( 'guest@example.com', 0, true );
+		$this->assertGreaterThan( 0, $first );
+
+		global $wpdb;
+		$table = wcr_table( 'carts' );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Test fixture on a trusted table.
+		$wpdb->update(
+			$table,
+			array(
+				'status'          => 'recovered',
+				'recovered_total' => 20.0,
+			),
+			array( 'id' => $first ),
+			array( '%s', '%f' ),
+			array( '%d' )
+		);
+
+		$second = $capture->upsert( 'guest@example.com', 0, true );
+
+		$this->assertGreaterThan( 0, $second );
+		$this->assertNotSame( $first, $second );
+		$this->assertSame( 2, $this->count_carts() );
+		$this->assertSame( 'active', wcr_get_cart( $second )->status );
+
+		$old = wcr_get_cart( $first );
+		$this->assertSame( 'recovered', $old->status );
+		$this->assertSame( 20.0, (float) $old->recovered_total );
+		$this->assertStringEndsWith( '#' . $first, $old->cart_key );
+
+		// The live session key now belongs to the new row.
+		$this->assertSame( $second, $capture->upsert( 'guest@example.com', 0, true ) );
+	}
+
+	/**
 	 * An opted-out guest gets the success body but no row is written.
 	 *
 	 * @return void

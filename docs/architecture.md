@@ -80,7 +80,13 @@ woocommerce_checkout_order_processed
 Cart status lifecycle: `active -> abandoned` (sweep), `abandoned -> active` (any new activity or a
 restore click; pending sends cancelled, sequence later resumes at the first unsent step),
 `abandoned|active -> recovered|completed` (order), `abandoned -> unsubscribed`, and the retention
-job maps non-recovered stale rows to deleted and recovered stale rows to `anonymized`.
+job maps non-recovered stale rows to deleted and recovered stale rows to `anonymized`. The sweep
+also closes an idle cart it can never mail: `active -> unsubscribed` for an opted-out address and
+`active -> completed` when the customer has ordered since the cart was created, so those rows do
+not stay at the head of every oldest-first batch. When a session with a `completed`, `recovered`
+or `anonymized` row builds a new cart, capture moves the old row to the archived key
+`{cart_key}#{id}` and inserts a fresh `active` row, because the session key (a logged-in
+customer's user id) never changes.
 
 ## Proposed folder / file tree
 
@@ -178,7 +184,7 @@ Four custom tables, all `$wpdb->prefix`-prefixed. Charset/collation from `$wpdb-
 | Column | Type | Notes |
 | --- | --- | --- |
 | id | BIGINT UNSIGNED AI PK | |
-| cart_key | VARCHAR(64) NOT NULL | WC session customer id; UNIQUE |
+| cart_key | VARCHAR(64) NOT NULL | WC session customer id; UNIQUE; `{key}#{id}` once archived |
 | user_id | BIGINT UNSIGNED NULL | null for guests |
 | email | VARCHAR(191) NULL | indexed; nulled on anonymization |
 | consent | TINYINT(1) NOT NULL DEFAULT 0 | 1 for logged-in and consenting guests |

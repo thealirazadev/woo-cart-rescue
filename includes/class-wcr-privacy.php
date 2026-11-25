@@ -262,11 +262,19 @@ class WCR_Privacy {
 				'post_status' => 'any',
 				'numberposts' => 100,
 				'fields'      => 'ids',
+				// Filter on expiry in the query itself: a batch of the newest coupons can be all
+				// live, which would keep older expired ones from ever being reached.
 				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Bounded daily cron batch keyed on the plugin's own coupon marker.
 				'meta_query'  => array(
 					array(
 						'key'   => '_wcr_auto_generated',
 						'value' => 'yes',
+					),
+					array(
+						'key'     => 'date_expires',
+						'value'   => array( 1, time() ),
+						'compare' => 'BETWEEN',
+						'type'    => 'NUMERIC',
 					),
 				),
 			)
