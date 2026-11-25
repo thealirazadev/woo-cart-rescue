@@ -156,7 +156,7 @@ Major versions below; exact versions are pinned at install time and the lockfile
   query, duplicate-send protection needs a unique `(cart_id, step)` key, and the report needs
   aggregate SUM/COUNT queries. Meta tables offer none of that and would force fake posts and
   unindexed LIKE queries. Trade-off: we own schema migrations; they are versioned through
-  `wcr_db_version` and an idempotent upgrade routine (see docs/rules.md).
+  `wcr_db_version` and an idempotent upgrade routine; applied migrations are never edited.
 - WooCommerce email classes (`WC_Email` subclass) rather than bare `wp_mail` with hand-rolled
   templates: recovery emails inherit the store's email styling, from-name/address, and mailer
   (including any SMTP plugin), the subject and heading of each step become owner-editable under
