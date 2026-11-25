@@ -101,6 +101,26 @@ class WCR_Test_Token extends TestCase {
 	}
 
 	/**
+	 * A token whose expiry is the current second already counts as expired.
+	 *
+	 * @return void
+	 */
+	public function test_is_expired_treats_current_second_as_expired() {
+		$this->assertTrue( WCR_Token::is_expired( time() ) );
+	}
+
+	/**
+	 * Verify rejects structurally malformed input before any signature check.
+	 *
+	 * @return void
+	 */
+	public function test_verify_rejects_malformed_tokens() {
+		$this->assertFalse( WCR_Token::verify( '', self::SECRET ) );
+		$this->assertFalse( WCR_Token::verify( 'not-a-token', self::SECRET ) );
+		$this->assertFalse( WCR_Token::verify( '42.2000000000.deadbeef', self::SECRET ) );
+	}
+
+	/**
 	 * A generated token verifies against the stored secret and carries a matching hash.
 	 *
 	 * @return void
