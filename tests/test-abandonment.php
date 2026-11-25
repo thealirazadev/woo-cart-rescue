@@ -187,7 +187,7 @@ class WCR_Test_Abandonment extends WP_UnitTestCase {
 		$table = wcr_table( 'sends' );
 
 		// Step 1 keeps its single sent row: the resume must not queue it again. The sweep does add
-		// a row, but for step 2, which is the documented resume behaviour (docs/PRD.md).
+		// a row, but for step 2: a resume schedules the first enabled step that has not been sent.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Test assertion against a trusted table.
 		$step_one = $wpdb->get_results( $wpdb->prepare( "SELECT status FROM {$table} WHERE cart_id = %d AND step = 1", $cart_id ) );
 

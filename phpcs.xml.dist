@@ -44,7 +44,7 @@
 				<element value="WCR"/>
 			</property>
 		</properties>
-		<!-- The wcr_/WCR_ prefix is the documented, binding convention (docs/rules.md). -->
+		<!-- wcr_/WCR_ is the project-wide prefix for every global; only the too-short warning is dropped. -->
 		<exclude name="WordPress.NamingConventions.PrefixAllGlobals.ShortPrefixPassed"/>
 	</rule>
 	<rule ref="WordPress.WP.Capabilities">

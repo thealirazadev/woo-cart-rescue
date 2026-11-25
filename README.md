@@ -14,8 +14,7 @@ Stack: WordPress plugin in PHP 8.1+, WooCommerce hooks and email classes, Action
 timing, custom database tables with versioned migrations, vanilla JS for the checkout capture
 script, PHPUnit and PHPCS (WordPress Coding Standards) for quality gates.
 
-Status: v1.1.0 implemented (phases 1-6 complete). Phase 6 adds optional auto-generated recovery
-coupons.
+Status: v1.1.0. The latest release adds optional auto-generated recovery coupons.
 
 ## Screenshots
 
@@ -60,7 +59,8 @@ runs with lightweight stubs and the integration test files no-op so the command 
 ## Design decisions
 
 The trade-offs below are the load-bearing ones. Each records the alternative that was rejected and
-why, so the reasoning survives past the original author.
+why. The full list, including the edge cases and bugs found along the way, is in
+[docs/decisions.md](docs/decisions.md).
 
 ### Consent-gated guest capture
 
